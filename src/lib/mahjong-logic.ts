@@ -17,6 +17,7 @@ export interface MahjongSettings {
   rateSettings: number; // 1000点あたりの金額
   chipEnabled: boolean;
   chipRate: number; // 1枚あたりの金額
+  tieRankingRule: 'split' | 'seatPriority'; // 同点時の順位
 }
 
 export interface PlayerInput {
@@ -60,7 +61,7 @@ export function calculateMatchResults(
   players: PlayerInput[],
   settings: MahjongSettings
 ): PlayerResult[] {
-  const { uma1, uma2, uma3, uma4, okaEnabled, startPoints, returnPoints, fractionRule, rateSettings, chipRate } = settings;
+  const { uma1, uma2, uma3, uma4, okaEnabled, startPoints, returnPoints, fractionRule, rateSettings, chipRate, tieRankingRule } = settings;
 
   // 1. 基礎データの準備
   // 合計点は常に開始点×4。返し点はポイント計算の基準。
@@ -83,6 +84,8 @@ export function calculateMatchResults(
     .map((_, index) => index)
     .sort((a, b) => {
       if (players[b].score !== players[a].score) return players[b].score - players[a].score;
+      // 同点の場合、席順優先ならインデックスが小さい（起家側）を優先、そうでなければrawRank（あれば）
+      if (tieRankingRule === 'seatPriority') return a - b;
       return (players[a].rawRank || 0) - (players[b].rawRank || 0);
     });
 
@@ -90,14 +93,15 @@ export function calculateMatchResults(
 
   let i = 0;
   while (i < sortedIndices.length) {
-    let j = i;
-    // 同点・同順位のグループを探す
-    while (
-      j < sortedIndices.length &&
-      players[sortedIndices[j]].score === players[sortedIndices[i]].score &&
-      (players[sortedIndices[j]].rawRank || 0) === (players[sortedIndices[i]].rawRank || 0)
-    ) {
-      j++;
+    let j = i + 1;
+    // 同点・同順位のグループを探す（同着分け合い設定時のみ）
+    if (tieRankingRule === 'split') {
+      while (
+        j < sortedIndices.length &&
+        players[sortedIndices[j]].score === players[sortedIndices[i]].score
+      ) {
+        j++;
+      }
     }
 
     const numTied = j - i;

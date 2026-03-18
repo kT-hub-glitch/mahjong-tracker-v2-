@@ -54,14 +54,15 @@ export default function PlayersPage() {
     }
   };
 
-  const handleDeletePlayer = async (id: string) => {
-    if (!confirm('この選手を削除しますか？')) return;
+  const handleDeletePlayer = async (player: any) => {
+    const confirmMessage = `選手「${player.name}」を削除しますか？\n\n※この選手を削除しても過去の対局記録は消えませんが、統計画面などで名前が正しく表示されなくなる可能性があります。本当に削除しますか？`;
+    if (!confirm(confirmMessage)) return;
 
-    const { error } = await supabase.from('players').delete().eq('id', id);
+    const { error } = await supabase.from('players').delete().eq('id', player.id);
     if (error) {
       alert('削除に失敗しました: ' + error.message);
     } else {
-      setPlayers(players.filter(p => p.id !== id));
+      setPlayers(players.filter(p => p.id !== player.id));
     }
   };
 
@@ -115,7 +116,7 @@ export default function PlayersPage() {
                   <p className="text-white font-medium">{player.name}</p>
                 </div>
                 <button
-                  onClick={() => handleDeletePlayer(player.id)}
+                  onClick={() => handleDeletePlayer(player)}
                   className="text-slate-600 hover:text-red-400 p-2 transition-colors"
                 >
                   <Trash2 size={18} />

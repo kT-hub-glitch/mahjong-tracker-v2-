@@ -44,16 +44,24 @@ export default function HistoryPage() {
 
   // 日次合計の計算
   const calculateDailyTotals = (dateMatches: any[]) => {
-    const totals: { [key: string]: { name: string, money: number } } = {};
+    const totals: { [key: string]: { name: string, money: number, chips: number, points: number } } = {};
+    let chipEnabledOnDate = false;
+
     dateMatches.forEach(match => {
+      if (match.settings.chipEnabled) chipEnabledOnDate = true;
       match.players_results.forEach((p: any) => {
         if (!totals[p.playerId]) {
-          totals[p.playerId] = { name: p.name, money: 0 };
+          totals[p.playerId] = { name: p.name, money: 0, chips: 0, points: 0 };
         }
         totals[p.playerId].money += p.totalMoney;
+        totals[p.playerId].chips += (p.chips || 0);
+        totals[p.playerId].points += (p.totalPoints || 0);
       });
     });
-    return Object.values(totals).sort((a, b) => b.money - a.money);
+    return {
+      results: Object.values(totals).sort((a, b) => b.money - a.money),
+      chipEnabledOnDate
+    };
   };
 
   const handleDelete = async (id: string) => {
@@ -110,7 +118,7 @@ export default function HistoryPage() {
         ) : (
           Object.keys(groupedMatches).map(date => {
             const dateMatches = groupedMatches[date];
-            const dailyTotals = calculateDailyTotals(dateMatches);
+            const { results: dailyTotals, chipEnabledOnDate } = calculateDailyTotals(dateMatches);
 
             return (
               <div key={date} className="space-y-4">
@@ -136,11 +144,31 @@ export default function HistoryPage() {
                   </div>
                   <div className="space-y-3 relative z-10">
                     {dailyTotals.map(total => (
-                      <div key={total.name} className="flex justify-between items-center text-sm bg-white/5 p-2 px-3 rounded-xl border border-white/5">
-                        <span className="text-slate-300 font-bold">{total.name}</span>
-                        <span className={`font-mono font-bold ${total.money > 0 ? 'text-emerald-400' : total.money < 0 ? 'text-red-400' : 'text-slate-500'}`}>
-                          {total.money > 0 ? '+' : ''}{total.money.toLocaleString()}
-                        </span>
+                      <div key={total.name} className="grid grid-cols-12 items-center text-xs bg-white/5 p-2 px-3 rounded-xl border border-white/5 gap-2">
+                        <span className="col-span-4 text-slate-300 font-bold truncate">{total.name}</span>
+                        
+                        {/* ポイント合計 */}
+                        <div className={`${chipEnabledOnDate ? 'col-span-3' : 'col-span-4'} text-right`}>
+                          <span className={`font-mono ${total.points > 0 ? 'text-emerald-400' : total.points < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                            {total.points > 0 ? '+' : ''}{total.points.toFixed(1)}<span className="text-[10px] ml-0.5 opacity-70">pts</span>
+                          </span>
+                        </div>
+
+                        {/* チップ合計 (設定有効時のみ) */}
+                        {chipEnabledOnDate && (
+                          <div className="col-span-2 text-right">
+                            <span className={`font-mono ${total.chips > 0 ? 'text-emerald-400' : total.chips < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                              {total.chips > 0 ? '+' : ''}{total.chips}<span className="text-[10px] ml-0.5 opacity-70">枚</span>
+                            </span>
+                          </div>
+                        )}
+
+                        {/* 金額合計 */}
+                        <div className={`${chipEnabledOnDate ? 'col-span-3' : 'col-span-4'} text-right`}>
+                          <span className={`font-mono font-bold ${total.money > 0 ? 'text-emerald-400' : total.money < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                            {total.money > 0 ? '+' : ''}{total.money.toLocaleString()}
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -173,39 +201,66 @@ export default function HistoryPage() {
 
                       <div className="space-y-3">
                         {match.players_results.sort((a: any, b: any) => a.rank - b.rank).map((p: any) => (
-                          <div key={p.playerId} className="grid grid-cols-12 items-center gap-2">
+                          <div key={p.playerId} className="grid grid-cols-12 items-center gap-1">
                             {/* 順位と名前 */}
-                            <div className="col-span-4 flex items-center gap-2">
-                              <span className={`w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold ${
+                            <div className="col-span-3 flex items-center gap-1.5 min-w-0">
+                              <span className={`w-4 h-4 shrink-0 flex items-center justify-center rounded-full text-[9px] font-bold ${
                                 p.rank === 1 ? 'bg-yellow-500/20 text-yellow-500' : 
                                 p.rank === 4 ? 'bg-slate-500/20 text-slate-500' : 'bg-white/5 text-slate-400'
                               }`}>
                                 {p.rank}
                               </span>
-                              <span className="text-white text-xs font-medium truncate">{p.name}</span>
+                              <span className="text-white text-[11px] font-medium truncate">{p.name}</span>
                             </div>
-
+  
                             {/* 点数 */}
                             <div className="col-span-3 text-right">
-                              <span className="text-[10px] text-slate-500 block leading-none mb-1">SCORE</span>
-                              <span className="text-white text-[11px] font-mono">{(p.score || 0).toLocaleString()}</span>
+                              <span className="text-[8px] text-slate-500 block leading-none mb-0.5">SCORE</span>
+                              <span className="text-white text-[10px] font-mono whitespace-nowrap">{(p.score || 0).toLocaleString()}</span>
                             </div>
-
-                            {/* ポイント */}
-                            <div className="col-span-2 text-right">
-                              <span className="text-[10px] text-slate-500 block leading-none mb-1">PTS</span>
-                              <span className={`text-[11px] font-mono font-bold ${p.totalPoints > 0 ? 'text-emerald-400' : p.totalPoints < 0 ? 'text-red-400' : 'text-slate-500'}`}>
-                                {p.totalPoints > 0 ? '+' : ''}{p.totalPoints.toFixed(1)}
-                              </span>
-                            </div>
-
-                            {/* 金額 */}
-                            <div className="col-span-3 text-right">
-                              <span className="text-[10px] text-slate-500 block leading-none mb-1">MONEY</span>
-                              <span className={`text-[11px] font-mono font-bold ${p.totalMoney > 0 ? 'text-emerald-400' : p.totalMoney < 0 ? 'text-red-400' : 'text-slate-500'}`}>
-                                {p.totalMoney > 0 ? '+' : ''}{p.totalMoney.toLocaleString()}
-                              </span>
-                            </div>
+  
+                            {/* チップ (条件付き) */}
+                            {match.settings.chipEnabled ? (
+                              <>
+                                <div className="col-span-2 text-right">
+                                  <span className="text-[8px] text-slate-500 block leading-none mb-0.5">CHIP</span>
+                                  <span className={`text-[10px] font-mono font-bold ${(p.chips || 0) > 0 ? 'text-emerald-400' : (p.chips || 0) < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                    {(p.chips || 0) > 0 ? '+' : ''}{p.chips || 0}
+                                  </span>
+                                </div>
+                                {/* ポイント */}
+                                <div className="col-span-2 text-right">
+                                  <span className="text-[8px] text-slate-500 block leading-none mb-0.5">PTS</span>
+                                  <span className={`text-[10px] font-mono font-bold ${p.totalPoints > 0 ? 'text-emerald-400' : p.totalPoints < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                    {p.totalPoints > 0 ? '+' : ''}{p.totalPoints.toFixed(1)}
+                                  </span>
+                                </div>
+                                {/* 金額 */}
+                                <div className="col-span-2 text-right">
+                                  <span className="text-[8px] text-slate-500 block leading-none mb-0.5">MONEY</span>
+                                  <span className={`text-[10px] font-mono font-bold ${p.totalMoney > 0 ? 'text-emerald-400' : p.totalMoney < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                    {p.totalMoney > 0 ? '+' : ''}{p.totalMoney.toLocaleString()}
+                                  </span>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                {/* ポイント (チップなし時) */}
+                                <div className="col-span-3 text-right">
+                                  <span className="text-[8px] text-slate-500 block leading-none mb-0.5">PTS</span>
+                                  <span className={`text-[10px] font-mono font-bold ${p.totalPoints > 0 ? 'text-emerald-400' : p.totalPoints < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                    {p.totalPoints > 0 ? '+' : ''}{p.totalPoints.toFixed(1)}
+                                  </span>
+                                </div>
+                                {/* 金額 (チップなし時) */}
+                                <div className="col-span-3 text-right">
+                                  <span className="text-[8px] text-slate-500 block leading-none mb-0.5">MONEY</span>
+                                  <span className={`text-[10px] font-mono font-bold ${p.totalMoney > 0 ? 'text-emerald-400' : p.totalMoney < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                    {p.totalMoney > 0 ? '+' : ''}{p.totalMoney.toLocaleString()}
+                                  </span>
+                                </div>
+                              </>
+                            )}
                           </div>
                         ))}
                       </div>

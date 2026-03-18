@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import MainLayout from '@/components/layout/MainLayout';
 import { calculateMatchResults, MahjongSettings, PlayerInput } from '@/lib/mahjong-logic';
-import { Save, AlertCircle, Settings2, Users, Trophy, History as HistoryIcon } from 'lucide-react';
+import { Save, AlertCircle, Settings2, Users, Trophy, History as HistoryIcon, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 /**
@@ -16,6 +16,9 @@ export default function InputPage() {
   const [saving, setSaving] = useState(false);
   const [players, setPlayers] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [selectedSessionPlayerIds, setSelectedSessionPlayerIds] = useState<string[]>([]);
+  const [isFilterEnabled, setIsFilterEnabled] = useState(true);
+  const [showPlayerSelector, setShowPlayerSelector] = useState(false);
 
   // フォーム状態
   const [date, setDate] = useState(new Date().toLocaleDateString('sv-SE'));
@@ -31,14 +34,15 @@ export default function InputPage() {
     rateSettings: 50,
     chipEnabled: false,
     chipRate: 100,
+    tieRankingRule: 'split',
   });
   const [memo, setMemo] = useState('');
 
-  const [playerInputs, setPlayerInputs] = useState<({ playerId: string, yakuman: boolean } & PlayerInput)[]>([
-    { playerId: '', score: 25000, chips: 0, yakuman: false },
-    { playerId: '', score: 25000, chips: 0, yakuman: false },
-    { playerId: '', score: 25000, chips: 0, yakuman: false },
-    { playerId: '', score: 25000, chips: 0, yakuman: false },
+  const [playerInputs, setPlayerInputs] = useState<({ playerId: string, yakuman: boolean } & Omit<PlayerInput, 'score' | 'chips'> & { score: number | '', chips: number | '' })[]>([
+    { playerId: '', score: '', chips: '', yakuman: false },
+    { playerId: '', score: '', chips: '', yakuman: false },
+    { playerId: '', score: '', chips: '', yakuman: false },
+    { playerId: '', score: '', chips: '', yakuman: false },
   ]);
 
   useEffect(() => {
@@ -94,19 +98,36 @@ export default function InputPage() {
       }
 
       setLoading(false);
+
+      // ローカルストレージから参加者設定を復元
+      const savedIds = localStorage.getItem('mahjong_session_players');
+      if (savedIds) {
+        try {
+          setSelectedSessionPlayerIds(JSON.parse(savedIds));
+        } catch (e) {
+          console.error('Failed to load session players', e);
+        }
+      }
     };
     fetchData();
   }, []);
 
-  const handleScoreChange = (index: number, score: number) => {
+  // 参加者設定を保存
+  useEffect(() => {
+    if (selectedSessionPlayerIds.length > 0) {
+      localStorage.setItem('mahjong_session_players', JSON.stringify(selectedSessionPlayerIds));
+    }
+  }, [selectedSessionPlayerIds]);
+
+  const handleScoreChange = (index: number, value: string) => {
     const newInputs = [...playerInputs];
-    newInputs[index].score = score;
+    newInputs[index].score = value === '' ? '' : parseInt(value) || 0;
     setPlayerInputs(newInputs);
   };
 
-  const handleChipChange = (index: number, chips: number) => {
+  const handleChipChange = (index: number, value: string) => {
     const newInputs = [...playerInputs];
-    newInputs[index].chips = chips;
+    newInputs[index].chips = value === '' ? '' : parseInt(value) || 0;
     setPlayerInputs(newInputs);
   };
 
@@ -114,7 +135,27 @@ export default function InputPage() {
     const newInputs = [...playerInputs];
     newInputs[index].playerId = playerId;
     setPlayerInputs(newInputs);
+
+    // 選択されたら、自動的に本日の参加者リストに追加（未追加の場合）
+    if (playerId && !selectedSessionPlayerIds.includes(playerId)) {
+      setSelectedSessionPlayerIds(prev => [...prev, playerId]);
+    }
   };
+
+  const toggleSessionPlayer = (playerId: string) => {
+    setSelectedSessionPlayerIds(prev => 
+      prev.includes(playerId) 
+        ? prev.filter(id => id !== playerId) 
+        : [...prev, playerId]
+    );
+  };
+
+  const filteredPlayers = useMemo(() => {
+    if (!isFilterEnabled || selectedSessionPlayerIds.length === 0) {
+      return players;
+    }
+    return players.filter(p => selectedSessionPlayerIds.includes(p.id));
+  }, [players, selectedSessionPlayerIds, isFilterEnabled]);
 
   const handleYakumanChange = (index: number, checked: boolean) => {
     const newInputs = [...playerInputs];
@@ -122,7 +163,7 @@ export default function InputPage() {
     setPlayerInputs(newInputs);
   };
 
-  const currentTotal = playerInputs.reduce((sum, p) => sum + p.score, 0);
+  const currentTotal = playerInputs.reduce((sum, p) => sum + (Number(p.score) || 0), 0);
   const targetTotal = settings.okaEnabled ? settings.startPoints * 4 : 120000;
   const isTotalValid = currentTotal === targetTotal;
 
@@ -139,7 +180,12 @@ export default function InputPage() {
 
     setSaving(true);
     try {
-      const results = calculateMatchResults(playerInputs, settings);
+      const normalizedInputs = playerInputs.map(p => ({
+        ...p,
+        score: Number(p.score) || 0,
+        chips: Number(p.chips) || 0
+      }));
+      const results = calculateMatchResults(normalizedInputs, settings);
       
       const matchData = {
         user_id: userId,
@@ -149,8 +195,8 @@ export default function InputPage() {
         players_results: results.map((r, idx) => ({
           ...r,
           playerId: playerInputs[idx].playerId,
-          score: playerInputs[idx].score,
-          chips: playerInputs[idx].chips,
+          score: Number(playerInputs[idx].score) || 0,
+          chips: Number(playerInputs[idx].chips) || 0,
           yakumanCount: playerInputs[idx].yakuman ? 1 : 0,
           name: players.find(p => p.id === playerInputs[idx].playerId)?.name
         }))
@@ -317,6 +363,35 @@ export default function InputPage() {
                 </select>
               </div>
 
+              <div className="col-span-2">
+                <label className="block text-[10px] text-slate-500 mb-1 uppercase font-bold">同点時の順位</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSettings({ ...settings, tieRankingRule: 'split' })}
+                    className={`h-10 rounded-xl px-3 text-xs font-bold transition-all border ${
+                      settings.tieRankingRule === 'split' 
+                        ? 'bg-emerald-600/20 border-emerald-500/50 text-emerald-400' 
+                        : 'bg-white/5 border-white/10 text-slate-500'
+                    }`}
+                  >
+                    同着 (分け合い)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSettings({ ...settings, tieRankingRule: 'seatPriority' })}
+                    className={`h-10 rounded-xl px-3 text-xs font-bold transition-all border ${
+                      settings.tieRankingRule === 'seatPriority' 
+                        ? 'bg-emerald-600/20 border-emerald-500/50 text-emerald-400' 
+                        : 'bg-white/5 border-white/10 text-slate-500'
+                    }`}
+                  >
+                    席順 (上家優先)
+                  </button>
+                </div>
+                <p className="text-[9px] text-slate-500 mt-1 px-1">※席順の場合、入力欄の上のスロットが優先されます</p>
+              </div>
+
               <div>
                 <label className="block text-[10px] text-slate-500 mb-1 uppercase font-bold">点レート (1000点)</label>
                 <div className="relative">
@@ -363,6 +438,56 @@ export default function InputPage() {
             </div>
           </section>
 
+          {/* 本日の参加者設定 */}
+          <section className="glass rounded-3xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div 
+                className="flex items-center gap-2 text-emerald-400 font-bold text-sm cursor-pointer"
+                onClick={() => setShowPlayerSelector(!showPlayerSelector)}
+              >
+                <Users size={16} /> 本日の参加者
+                <span className="bg-emerald-500/10 text-emerald-500 text-[10px] px-2 py-0.5 rounded-full">
+                  {selectedSessionPlayerIds.length}名設定中
+                </span>
+                <ChevronRight size={14} className={`transition-transform ${showPlayerSelector ? 'rotate-90' : ''}`} />
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsFilterEnabled(!isFilterEnabled)}
+                className={`text-[10px] font-bold px-3 py-1 rounded-full transition-all ${
+                  isFilterEnabled ? 'bg-emerald-600 text-white' : 'bg-white/5 text-slate-500 border border-white/10'
+                }`}
+              >
+                絞り込み: {isFilterEnabled ? 'ON' : 'OFF'}
+              </button>
+            </div>
+
+            {showPlayerSelector && (
+              <div className="grid grid-cols-2 gap-2 pt-2 animate-in fade-in slide-in-from-top-2">
+                {players.map((p: any) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => toggleSessionPlayer(p.id)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition-all ${
+                      selectedSessionPlayerIds.includes(p.id)
+                        ? 'bg-emerald-600/20 border-emerald-500/50 text-emerald-400'
+                        : 'bg-white/5 border-white/10 text-slate-500'
+                    }`}
+                  >
+                    <div className={`w-2 h-2 rounded-full ${selectedSessionPlayerIds.includes(p.id) ? 'bg-emerald-400' : 'bg-transparent border border-slate-600'}`} />
+                    <span className="truncate">{p.name}</span>
+                  </button>
+                ))}
+                {players.length === 0 && (
+                  <div className="col-span-2 text-center py-4 text-slate-500 text-[10px]">
+                    選手が登録されていません
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+
           {/* 選手・点数入力 */}
           <section className="space-y-3">
             <div className="flex items-center justify-between px-1">
@@ -387,16 +512,19 @@ export default function InputPage() {
                     required
                   >
                     <option value="">選手を選択</option>
-                    {players.map(p => (
+                    {filteredPlayers.map(p => (
                       <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
+                    {!isFilterEnabled && players.length > filteredPlayers.length && (
+                      <option disabled>── 他の選手 ──</option>
+                    )}
                   </select>
                   <div className="grid grid-cols-5 gap-2">
                     <div className="relative col-span-3">
                       <input
                         type="number"
                         value={input.score}
-                        onChange={(e) => handleScoreChange(idx, parseInt(e.target.value) || 0)}
+                        onChange={(e) => handleScoreChange(idx, e.target.value)}
                         className="glass-input w-full rounded-xl px-3 py-2 text-lg font-bold text-right py-3"
                         placeholder="持ち点"
                         step={100}
@@ -408,7 +536,7 @@ export default function InputPage() {
                         <input
                           type="number"
                           value={input.chips}
-                          onChange={(e) => handleChipChange(idx, parseInt(e.target.value) || 0)}
+                          onChange={(e) => handleChipChange(idx, e.target.value)}
                           className="glass-input w-full rounded-xl px-3 py-2 text-lg font-bold text-right text-emerald-400 py-3"
                           placeholder="枚数"
                         />
