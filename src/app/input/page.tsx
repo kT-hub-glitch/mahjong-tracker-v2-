@@ -39,10 +39,10 @@ export default function InputPage() {
   const [memo, setMemo] = useState('');
 
   const [playerInputs, setPlayerInputs] = useState<({ playerId: string, yakuman: boolean } & Omit<PlayerInput, 'score' | 'chips'> & { score: number | string, chips: number | '' })[]>([
-    { playerId: '', score: '00', chips: '', yakuman: false },
-    { playerId: '', score: '00', chips: '', yakuman: false },
-    { playerId: '', score: '00', chips: '', yakuman: false },
-    { playerId: '', score: '00', chips: '', yakuman: false },
+    { playerId: '', score: '', chips: '', yakuman: false },
+    { playerId: '', score: '', chips: '', yakuman: false },
+    { playerId: '', score: '', chips: '', yakuman: false },
+    { playerId: '', score: '', chips: '', yakuman: false },
   ]);
 
   useEffect(() => {
@@ -73,10 +73,10 @@ export default function InputPage() {
           setDate(match.date);
           setSettings(match.settings);
           setMemo(match.memo || '');
-          // players_results から playerInputs へ変換
+          // players_results から playerInputs へ変換 (100で割って表示)
           const inputs = match.players_results.map((r: any) => ({
             playerId: r.playerId,
-            score: r.score,
+            score: typeof r.score === 'number' ? String(r.score / 100) : '',
             chips: r.chips || 0,
             yakuman: !!r.yakumanCount
           }));
@@ -163,7 +163,8 @@ export default function InputPage() {
     setPlayerInputs(newInputs);
   };
 
-  const currentTotal = playerInputs.reduce((sum, p) => sum + (Number(p.score) || 0), 0);
+  // 表示用には 100倍 して計算
+  const currentTotal = playerInputs.reduce((sum, p) => sum + (Number(p.score) || 0) * 100, 0);
   const targetTotal = settings.okaEnabled ? settings.startPoints * 4 : 120000;
   const isTotalValid = currentTotal === targetTotal;
 
@@ -197,7 +198,7 @@ export default function InputPage() {
 
       const normalizedInputs = playerInputs.map(p => ({
         ...p,
-        score: Number(p.score) || 0,
+        score: (Number(p.score) || 0) * 100, // 100倍して保存
         chips: Number(p.chips) || 0
       }));
       const results = calculateMatchResults(normalizedInputs, normalizedSettings);
@@ -210,7 +211,7 @@ export default function InputPage() {
         players_results: results.map((r, idx) => ({
           ...r,
           playerId: playerInputs[idx].playerId,
-          score: Number(playerInputs[idx].score) || 0,
+          score: (Number(playerInputs[idx].score) || 0) * 100,
           chips: Number(playerInputs[idx].chips) || 0,
           yakumanCount: playerInputs[idx].yakuman ? 1 : 0,
           name: players.find(p => p.id === playerInputs[idx].playerId)?.name
@@ -302,21 +303,27 @@ export default function InputPage() {
                 <>
                   <div>
                     <label className="block text-[10px] text-slate-500 mb-1 uppercase font-bold">開始点 (配給原点)</label>
-                    <input
-                      type="number"
-                      value={settings.startPoints === 0 ? '00' : settings.startPoints}
-                      onChange={(e) => setSettings({ ...settings, startPoints: parseInt(e.target.value) || 0 })}
-                      className="glass-input w-full rounded-xl px-3 py-2 text-sm"
-                    />
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={settings.startPoints ? settings.startPoints / 100 : ''}
+                        onChange={(e) => setSettings({ ...settings, startPoints: (parseInt(e.target.value) || 0) * 100 })}
+                        className="glass-input w-full rounded-xl pl-3 pr-7 py-2 text-sm text-right font-bold tracking-widest"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500 pointer-events-none font-mono font-bold">00</span>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-[10px] text-slate-500 mb-1 uppercase font-bold">返し点 (原点)</label>
-                    <input
-                      type="number"
-                      value={settings.returnPoints === 0 ? '00' : settings.returnPoints}
-                      onChange={(e) => setSettings({ ...settings, returnPoints: parseInt(e.target.value) || 0 })}
-                      className="glass-input w-full rounded-xl px-3 py-2 text-sm"
-                    />
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={settings.returnPoints ? settings.returnPoints / 100 : ''}
+                        onChange={(e) => setSettings({ ...settings, returnPoints: (parseInt(e.target.value) || 0) * 100 })}
+                        className="glass-input w-full rounded-xl pl-3 pr-7 py-2 text-sm text-right font-bold tracking-widest"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500 pointer-events-none font-mono font-bold">00</span>
+                    </div>
                   </div>
                 </>
               )}
@@ -556,7 +563,7 @@ export default function InputPage() {
                         tabIndex={-1}
                         onClick={() => {
                           const current = input.score.toString();
-                          if (current === '00' || current === '0' || current === '') {
+                          if (current === '0' || current === '') {
                             handleScoreChange(idx, '-');
                           } else {
                             handleScoreChange(idx, current.startsWith('-') ? current.replace('-', '') : '-' + current);
@@ -570,9 +577,10 @@ export default function InputPage() {
                         type="number"
                         value={input.score}
                         onChange={(e) => handleScoreChange(idx, e.target.value)}
-                        className="glass-input w-full rounded-xl pl-11 pr-3 text-lg font-bold text-right py-3"
-                        placeholder="持ち点"
+                        className="glass-input w-full rounded-xl pl-11 pr-9 text-xl font-bold text-right py-3 tracking-widest"
+                        placeholder="300"
                       />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xl text-white/30 pointer-events-none font-bold font-mono tracking-widest">00</span>
                     </div>
                     {settings.chipEnabled && (
                       <div className="relative col-span-2">
