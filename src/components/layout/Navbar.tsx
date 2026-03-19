@@ -27,8 +27,8 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 glass border-t border-white/10 z-50">
-      <div className="max-w-lg mx-auto px-4">
+    <nav className="shrink-0 w-full glass border-t border-white/10 z-50">
+      <div className="max-w-lg mx-auto px-4 pb-[env(safe-area-inset-bottom)]">
         <div className="flex justify-between items-center h-16">
           {navItems.map((item) => {
             const Icon = item.icon;

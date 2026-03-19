@@ -6,8 +6,8 @@ import Navbar from './Navbar';
  */
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="pb-20 min-h-screen">
-      <main className="max-w-lg mx-auto p-4">
+    <div className="flex flex-col h-[100dvh] overflow-hidden">
+      <main className="flex-1 overflow-y-auto w-full max-w-lg mx-auto p-4 pb-6 overscroll-y-contain">
         {children}
       </main>
       <Navbar />
