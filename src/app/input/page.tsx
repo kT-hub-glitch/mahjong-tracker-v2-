@@ -28,8 +28,8 @@ export default function InputPage() {
     uma3: -10,
     uma4: -30,
     okaEnabled: true,
-    startPoints: 25000,
-    returnPoints: 30000,
+    startPoints: 0,
+    returnPoints: 0,
     fractionRule: 'originRule',
     rateSettings: 50,
     chipEnabled: false,
@@ -38,11 +38,11 @@ export default function InputPage() {
   });
   const [memo, setMemo] = useState('');
 
-  const [playerInputs, setPlayerInputs] = useState<({ playerId: string, yakuman: boolean } & Omit<PlayerInput, 'score' | 'chips'> & { score: number | '', chips: number | '' })[]>([
-    { playerId: '', score: '', chips: '', yakuman: false },
-    { playerId: '', score: '', chips: '', yakuman: false },
-    { playerId: '', score: '', chips: '', yakuman: false },
-    { playerId: '', score: '', chips: '', yakuman: false },
+  const [playerInputs, setPlayerInputs] = useState<({ playerId: string, yakuman: boolean } & Omit<PlayerInput, 'score' | 'chips'> & { score: number | string, chips: number | '' })[]>([
+    { playerId: '', score: '00', chips: '', yakuman: false },
+    { playerId: '', score: '00', chips: '', yakuman: false },
+    { playerId: '', score: '00', chips: '', yakuman: false },
+    { playerId: '', score: '00', chips: '', yakuman: false },
   ]);
 
   useEffect(() => {
@@ -121,7 +121,7 @@ export default function InputPage() {
 
   const handleScoreChange = (index: number, value: string) => {
     const newInputs = [...playerInputs];
-    newInputs[index].score = value === '' ? '' : parseInt(value) || 0;
+    newInputs[index].score = value;
     setPlayerInputs(newInputs);
   };
 
@@ -167,9 +167,12 @@ export default function InputPage() {
   const targetTotal = settings.okaEnabled ? settings.startPoints * 4 : 120000;
   const isTotalValid = currentTotal === targetTotal;
 
+  const currentChipTotal = playerInputs.reduce((sum, p) => sum + (Number(p.chips) || 0), 0);
+  const isChipTotalValid = !settings.chipEnabled || currentChipTotal === 0;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isTotalValid || !userId || saving) return;
+    if (!isTotalValid || !isChipTotalValid || !userId || saving) return;
     
     // 重複チェック
     const selectedIds = playerInputs.map(p => p.playerId);
@@ -288,21 +291,21 @@ export default function InputPage() {
                   <div>
                     <label className="block text-[10px] text-slate-500 mb-1 uppercase font-bold">開始点 (配給原点)</label>
                     <input
-                      type="number"
-                      value={settings.startPoints}
+                      type="text"
+                      inputMode="numeric"
+                      value={settings.startPoints === 0 ? '00' : settings.startPoints}
                       onChange={(e) => setSettings({ ...settings, startPoints: parseInt(e.target.value) || 0 })}
                       className="glass-input w-full rounded-xl px-3 py-2 text-sm"
-                      step={100}
                     />
                   </div>
                   <div>
                     <label className="block text-[10px] text-slate-500 mb-1 uppercase font-bold">返し点 (原点)</label>
                     <input
-                      type="number"
-                      value={settings.returnPoints}
+                      type="text"
+                      inputMode="numeric"
+                      value={settings.returnPoints === 0 ? '00' : settings.returnPoints}
                       onChange={(e) => setSettings({ ...settings, returnPoints: parseInt(e.target.value) || 0 })}
                       className="glass-input w-full rounded-xl px-3 py-2 text-sm"
-                      step={100}
                     />
                   </div>
                 </>
@@ -490,12 +493,29 @@ export default function InputPage() {
 
           {/* 選手・点数入力 */}
           <section className="space-y-3">
-            <div className="flex items-center justify-between px-1">
+            <div className="flex flex-col gap-2 px-1 mb-2">
               <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
                 <Users size={16} /> 点数入力
               </div>
-              <div className={`text-[10px] font-bold px-2 py-1 rounded-full ${isTotalValid ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-400'}`}>
-                {currentTotal.toLocaleString()} / {targetTotal.toLocaleString()}
+              <div className="flex flex-wrap gap-2">
+                <div className={`text-[10px] font-bold px-3 py-1.5 rounded-xl border flex items-center gap-1.5 ${isTotalValid ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-500'}`}>
+                  <span>点数: {currentTotal.toLocaleString()} / {targetTotal.toLocaleString()}</span>
+                  {!isTotalValid && (
+                    <span className="opacity-80">
+                      ({currentTotal > targetTotal ? '+' : ''}{(currentTotal - targetTotal).toLocaleString()} 点)
+                    </span>
+                  )}
+                </div>
+                {settings.chipEnabled && (
+                  <div className={`text-[10px] font-bold px-3 py-1.5 rounded-xl border flex items-center gap-1.5 ${isChipTotalValid ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-500'}`}>
+                    <span>チップ合計: {currentChipTotal > 0 ? `+${currentChipTotal}` : currentChipTotal}</span>
+                    {!isChipTotalValid && (
+                      <span className="opacity-80">
+                        ({currentChipTotal > 0 ? `${currentChipTotal} 枚オーバー` : `${Math.abs(currentChipTotal)} 枚不足`})
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -522,12 +542,12 @@ export default function InputPage() {
                   <div className="grid grid-cols-5 gap-2">
                     <div className="relative col-span-3">
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
                         value={input.score}
                         onChange={(e) => handleScoreChange(idx, e.target.value)}
                         className="glass-input w-full rounded-xl px-3 py-2 text-lg font-bold text-right py-3"
                         placeholder="持ち点"
-                        step={100}
                       />
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] text-slate-500 font-bold">PTS</span>
                     </div>
@@ -576,21 +596,39 @@ export default function InputPage() {
             />
           </section>
 
-          {!isTotalValid && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-xs p-4 rounded-2xl flex items-center gap-2">
-              <AlertCircle size={16} />
-              <div>
-                <p className="font-bold">点数合計エラー</p>
-                <p className="text-[10px] mt-1 opacity-80">
-                  現在の合計点 ({currentTotal.toLocaleString()}) が目標 ({targetTotal.toLocaleString()}) と一致しません。配給原点などを確認してください。
-                </p>
-              </div>
+          {(!isTotalValid || !isChipTotalValid) && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-xs p-4 rounded-2xl flex flex-col gap-2">
+              {!isTotalValid && (
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={16} className="shrink-0" />
+                  <div>
+                    <p className="font-bold">点数合計エラー</p>
+                    <p className="text-[10px] mt-1 opacity-80">
+                      目標 ({targetTotal.toLocaleString()}) に対して 
+                      <strong className="text-red-400 ml-1">
+                        {Math.abs(currentTotal - targetTotal).toLocaleString()} 点 {currentTotal > targetTotal ? 'オーバーしています' : '足りません'}。
+                      </strong>
+                    </p>
+                  </div>
+                </div>
+              )}
+              {!isChipTotalValid && (
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={16} className="shrink-0" />
+                  <div>
+                    <p className="font-bold">チップ合計エラー</p>
+                    <p className="text-[10px] mt-1 opacity-80">
+                      現在のチップ合計が {currentChipTotal > 0 ? `+${currentChipTotal}` : currentChipTotal} 枚です。合計が 0 枚になるように入力してください。
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           <button
             type="submit"
-            disabled={!isTotalValid || saving}
+            disabled={!isTotalValid || !isChipTotalValid || saving}
             className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-5 rounded-3xl shadow-lg shadow-emerald-600/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {saving ? '保存中...' : <><Save size={20} /> {new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '').get('edit') ? '記録を更新する' : '対局記録を保存する'}</>}

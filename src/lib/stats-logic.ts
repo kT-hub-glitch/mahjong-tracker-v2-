@@ -7,6 +7,9 @@ export interface PlayerStats {
   totalScore: number;
   totalPoints: number;
   totalMoney: number;
+  totalChips: number;
+  moneyFromScore: number;
+  moneyFromChips: number;
   avgRank: number;
   avgScore: number;
   avgPoints: number; // 麻雀ポイントの平均
@@ -27,7 +30,7 @@ export interface PlayerStats {
 /**
  * 全対局データから全選手の統計を算出します
  */
-export function calculateAllPlayerStats(matches: any[], players: any[], targetYear?: string): { [playerId: string]: PlayerStats } {
+export function calculateAllPlayerStats(matches: any[], players: any[], targetYear?: string, startDate?: string, endDate?: string): { [playerId: string]: PlayerStats } {
   const stats: { [playerId: string]: PlayerStats } = {};
 
   // 初期化
@@ -37,6 +40,9 @@ export function calculateAllPlayerStats(matches: any[], players: any[], targetYe
       totalScore: 0,
       totalPoints: 0,
       totalMoney: 0,
+      totalChips: 0,
+      moneyFromScore: 0,
+      moneyFromChips: 0,
       avgRank: 0,
       avgScore: 0,
       avgPoints: 0,
@@ -53,6 +59,10 @@ export function calculateAllPlayerStats(matches: any[], players: any[], targetYe
     // 年フィルター
     if (targetYear && !match.date.startsWith(targetYear)) return;
 
+    // 期間指定フィルター
+    if (startDate && match.date < startDate) return;
+    if (endDate && match.date > endDate) return;
+
     const results = match.players_results;
     
     results.forEach((p: any) => {
@@ -63,6 +73,12 @@ export function calculateAllPlayerStats(matches: any[], players: any[], targetYe
       s.totalScore += p.score || 0;
       s.totalPoints += p.totalPoints || 0;
       s.totalMoney += p.totalMoney || 0;
+
+      const chipMoney = (p.chips || 0) * (match.settings.chipRate || 0);
+      s.totalChips += p.chips || 0;
+      s.moneyFromChips += chipMoney;
+      s.moneyFromScore += (p.totalMoney || 0) - chipMoney;
+
       s.rankCounts[p.rank]++;
       s.yakumanCount += p.yakumanCount || 0;
       if (p.score > s.maxScore) s.maxScore = p.score;

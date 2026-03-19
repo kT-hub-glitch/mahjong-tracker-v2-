@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
-import { Users, History, TrendingUp, Filter, ChevronRight } from 'lucide-react';
+import { Users, History, TrendingUp, Filter, ChevronRight, Share2, Copy, Check } from 'lucide-react';
 import { calculateAllPlayerStats, PlayerStats } from '@/lib/stats-logic';
 import PlayerStatsModal from '@/components/stats/PlayerStatsModal';
 
@@ -18,6 +18,11 @@ export default function Home() {
   const [matches, setMatches] = useState<any[]>([]);
   const [stats, setStats] = useState<{ [id: string]: PlayerStats }>({});
   const [selectedYear, setSelectedYear] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [shareToken, setShareToken] = useState<string | null>(null);
+  const [isShareActive, setIsShareActive] = useState<boolean>(false);
+  const [copied, setCopied] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
   const router = useRouter();
 
@@ -40,10 +45,16 @@ export default function Home() {
       }
 
       // 並列でデータ取得
-      const [{ data: playersData }, { data: matchesData }] = await Promise.all([
+      const [{ data: playersData }, { data: matchesData }, { data: shareData }] = await Promise.all([
         supabase.from('players').select('*').eq('user_id', user.id).order('name'),
-        supabase.from('matches').select('*').eq('user_id', user.id).order('date', { ascending: false })
+        supabase.from('matches').select('*').eq('user_id', user.id).order('date', { ascending: false }),
+        supabase.from('share_settings').select('*').eq('user_id', user.id).maybeSingle()
       ]);
+
+      if (shareData) {
+        setShareToken(shareData.token);
+        setIsShareActive(shareData.is_active);
+      }
 
       setPlayers(playersData || []);
       setMatches(matchesData || []);
@@ -55,10 +66,46 @@ export default function Home() {
 
   useEffect(() => {
     if (players.length > 0) {
-      const newStats = calculateAllPlayerStats(matches, players, selectedYear === 'all' ? undefined : selectedYear);
+      const newStats = calculateAllPlayerStats(matches, players, selectedYear === 'all' ? undefined : selectedYear, startDate || undefined, endDate || undefined);
       setStats(newStats);
     }
-  }, [matches, players, selectedYear]);
+  }, [matches, players, selectedYear, startDate, endDate]);
+
+  const handleToggleShare = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    if (!shareToken) {
+      const newToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      const { data, error } = await supabase.from('share_settings').insert({
+        user_id: user.id,
+        token: newToken,
+        is_active: true
+      }).select().single();
+      
+      if (!error && data) {
+        setShareToken(data.token);
+        setIsShareActive(true);
+      }
+    } else {
+      const { error } = await supabase.from('share_settings').update({
+        is_active: !isShareActive,
+        updated_at: new Date().toISOString()
+      }).eq('user_id', user.id);
+      
+      if (!error) {
+        setIsShareActive(!isShareActive);
+      }
+    }
+  };
+
+  const copyToClipboard = () => {
+    if (!shareToken) return;
+    const url = `${window.location.origin}/share/${shareToken}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   if (loading) {
     return (
@@ -78,20 +125,77 @@ export default function Home() {
             </h1>
             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Analytics Overview</p>
           </div>
-          <div className="flex items-center gap-2 glass px-3 py-1 rounded-2xl border-white/20">
-            <Filter size={14} className="text-emerald-400" />
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              className="glass-select text-white text-xs font-bold py-2 outline-none rounded-xl"
-            >
-              <option value="all">全期間</option>
-              {years.map(y => (
-                <option key={y} value={y}>{y}年</option>
-              ))}
-            </select>
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2 glass px-3 py-1 rounded-2xl border-white/20">
+              <Filter size={14} className="text-emerald-400" />
+              <select
+                value={selectedYear}
+                onChange={(e) => { setSelectedYear(e.target.value); setStartDate(''); setEndDate(''); }}
+                className="glass-select text-white text-xs font-bold py-2 outline-none rounded-xl"
+              >
+                <option value="all">全期間</option>
+                {years.map(y => (
+                  <option key={y} value={y}>{y}年</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2 glass px-3 py-1.5 rounded-2xl border-white/20 text-xs">
+              <input 
+                type="date"
+                value={startDate}
+                onChange={(e) => { setStartDate(e.target.value); setSelectedYear('all'); }}
+                onClick={(e) => (e.target as any).showPicker?.()}
+                className="bg-transparent text-white w-[110px] outline-none font-mono cursor-pointer"
+              />
+              <span className="text-slate-500 font-bold">-</span>
+              <input 
+                type="date"
+                value={endDate}
+                onChange={(e) => { setEndDate(e.target.value); setSelectedYear('all'); }}
+                onClick={(e) => (e.target as any).showPicker?.()}
+                className="bg-transparent text-white w-[110px] outline-none font-mono cursor-pointer"
+              />
+            </div>
           </div>
         </header>
+
+        {/* 共有設定 UI */}
+        <section className="glass rounded-3xl p-5 border-white/20">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-sm font-bold text-emerald-400 flex items-center gap-2 mb-1">
+                <Share2 size={16} /> Public Share Link
+              </h2>
+              <p className="text-[10px] text-slate-400">
+                これをONにすると、専用URLでこの成績画面をご友人に「閲覧専用」として共有できます。
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4">
+              {isShareActive && shareToken && (
+                <div className="flex items-center gap-2 bg-white/5 p-2 rounded-xl border border-white/10 animate-in fade-in min-w-[250px]">
+                  <input 
+                    type="text"
+                    readOnly
+                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/share/${shareToken}`}
+                    className="bg-transparent text-xs text-white/80 w-full outline-none px-2"
+                  />
+                  <button 
+                    onClick={copyToClipboard}
+                    className="p-2 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 rounded-xl transition-colors shrink-0"
+                  >
+                    {copied ? <Check size={16} /> : <Copy size={16} />}
+                  </button>
+                </div>
+              )}
+              <button
+                onClick={handleToggleShare}
+                className={`w-12 h-6 rounded-full p-1 transition-colors shrink-0 ${isShareActive ? 'bg-emerald-600' : 'bg-slate-700'}`}
+              >
+                <div className={`w-4 h-4 bg-white rounded-full transition-transform ${isShareActive ? 'translate-x-6' : 'translate-x-0'}`} />
+              </button>
+            </div>
+          </div>
+        </section>
 
         {/* サマリーカード */}
         <div className="grid grid-cols-2 gap-4">
@@ -206,7 +310,7 @@ export default function Home() {
         <PlayerStatsModal
           player={selectedPlayer}
           stats={stats[selectedPlayer.id]}
-          year={selectedYear}
+          year={selectedYear !== 'all' ? selectedYear : startDate || endDate ? `${startDate || '開始'} ~ ${endDate || '現在'}` : 'all'}
           onClose={() => setSelectedPlayer(null)}
         />
       )}

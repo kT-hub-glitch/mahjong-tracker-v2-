@@ -117,6 +117,32 @@ export default function PlayerStatsModal({ player, stats, year, onClose }: Playe
             </div>
           </div>
 
+          {/* 財務・チップデータ追加枠 */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2 p-5 glass rounded-3xl border-emerald-500/30 space-y-2 relative overflow-hidden group bg-emerald-500/5">
+              <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mb-2 block">合計収支 (Money)</span>
+              <div className={`text-4xl font-mono font-bold ${stats.totalMoney >= 0 ? 'text-emerald-400' : 'text-red-400'} drop-shadow-[0_0_15px_rgba(16,185,129,0.2)]`}>
+                {stats.totalMoney >= 0 ? '+' : '-'}¥{Math.abs(stats.totalMoney).toLocaleString()}
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 sm:items-center text-xs font-bold pt-4 mt-2 border-t border-white/10">
+                <div className="flex-1 bg-white/5 px-3 py-2 rounded-xl flex justify-between items-center">
+                  <span className="text-slate-400">スコア分収支</span>
+                  <span className={`${stats.moneyFromScore >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{stats.moneyFromScore >= 0 ? '+' : '-'}¥{Math.abs(stats.moneyFromScore).toLocaleString()}</span>
+                </div>
+                <div className="flex-1 bg-white/5 px-3 py-2 rounded-xl flex justify-between items-center">
+                  <span className="text-slate-400">チップ分収支</span>
+                  <span className={`${stats.moneyFromChips >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{stats.moneyFromChips >= 0 ? '+' : '-'}¥{Math.abs(stats.moneyFromChips).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+            <div className="col-span-2 sm:col-span-1 p-5 glass rounded-3xl border-white/20 space-y-2 relative overflow-hidden group">
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">合計チップ枚数</span>
+              <div className={`text-3xl font-mono font-bold ${stats.totalChips >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                {stats.totalChips >= 0 ? '+' : ''}{stats.totalChips} <span className="text-lg opacity-40 ml-1">枚</span>
+              </div>
+            </div>
+          </div>
+
           {/* 順位率分布 (円グラフ) */}
           <div className="space-y-6">
             <h3 className="text-[11px] font-extrabold text-slate-400 uppercase flex items-center gap-2 px-1 tracking-widest">

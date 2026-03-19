@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import MainLayout from '@/components/layout/MainLayout';
-import { UserPlus, Users, Trash2 } from 'lucide-react';
+import { UserPlus, Users, Trash2, Lock, Unlock } from 'lucide-react';
 
 /**
  * 選手管理ページ（個人管理版）
@@ -66,6 +66,20 @@ export default function PlayersPage() {
     }
   };
 
+  const handleToggleLock = async (player: any) => {
+    const newLockState = !player.is_locked;
+    const { error } = await supabase
+      .from('players')
+      .update({ is_locked: newLockState })
+      .eq('id', player.id);
+
+    if (error) {
+      alert('ロック状態の変更に失敗しました: ' + error.message);
+    } else {
+      setPlayers(players.map(p => p.id === player.id ? { ...p, is_locked: newLockState } : p));
+    }
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -112,15 +126,31 @@ export default function PlayersPage() {
           ) : (
             players.map((player) => (
               <div key={player.id} className="glass rounded-2xl px-5 py-4 flex justify-between items-center group">
-                <div>
+                <div className="flex items-center gap-3">
                   <p className="text-white font-medium">{player.name}</p>
+                  {player.is_locked && (
+                    <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full font-bold">LOCKED</span>
+                  )}
                 </div>
-                <button
-                  onClick={() => handleDeletePlayer(player)}
-                  className="text-slate-600 hover:text-red-400 p-2 transition-colors"
-                >
-                  <Trash2 size={18} />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleToggleLock(player)}
+                    className={`p-2 transition-colors rounded-xl ${player.is_locked ? 'text-amber-400 hover:bg-amber-400/10' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
+                    title={player.is_locked ? 'ロック解除' : 'ロックして保護'}
+                  >
+                    {player.is_locked ? <Lock size={18} /> : <Unlock size={18} />}
+                  </button>
+                  
+                  {!player.is_locked && (
+                    <button
+                      onClick={() => handleDeletePlayer(player)}
+                      className="text-slate-600 hover:text-red-400 p-2 rounded-xl transition-colors hover:bg-red-500/10"
+                      title="削除"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                </div>
               </div>
             ))
           )}
