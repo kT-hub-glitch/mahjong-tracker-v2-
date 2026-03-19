@@ -577,7 +577,7 @@ export default function InputPage() {
                         type="number"
                         value={input.score}
                         onChange={(e) => handleScoreChange(idx, e.target.value)}
-                        className="glass-input w-full rounded-xl pl-11 pr-14 text-xl font-bold text-right py-3 tracking-widest"
+                        className="glass-input w-full rounded-xl pl-11 pr-10 text-xl font-bold text-right py-3 tracking-widest"
                         placeholder="300"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xl text-white/30 pointer-events-none font-bold font-mono tracking-widest">00</span>
