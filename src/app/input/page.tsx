@@ -308,7 +308,7 @@ export default function InputPage() {
                         type="number"
                         value={settings.startPoints ? settings.startPoints / 100 : ''}
                         onChange={(e) => setSettings({ ...settings, startPoints: (parseInt(e.target.value) || 0) * 100 })}
-                        className="glass-input w-full rounded-xl pl-3 pr-10 py-2 text-sm text-right font-bold tracking-widest"
+                        className="glass-input w-full rounded-xl pl-3 pr-8 py-2 text-sm text-right font-bold tracking-widest"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500 pointer-events-none font-mono font-bold">00</span>
                     </div>
@@ -320,7 +320,7 @@ export default function InputPage() {
                         type="number"
                         value={settings.returnPoints ? settings.returnPoints / 100 : ''}
                         onChange={(e) => setSettings({ ...settings, returnPoints: (parseInt(e.target.value) || 0) * 100 })}
-                        className="glass-input w-full rounded-xl pl-3 pr-10 py-2 text-sm text-right font-bold tracking-widest"
+                        className="glass-input w-full rounded-xl pl-3 pr-8 py-2 text-sm text-right font-bold tracking-widest"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500 pointer-events-none font-mono font-bold">00</span>
                     </div>
