@@ -22,18 +22,18 @@ export default function InputPage() {
 
   // フォーム状態
   const [date, setDate] = useState(new Date().toLocaleDateString('sv-SE'));
-  const [settings, setSettings] = useState<MahjongSettings>({
-    uma1: 30,
-    uma2: 10,
-    uma3: -10,
-    uma4: -30,
+  const [settings, setSettings] = useState<any>({
+    uma1: '',
+    uma2: '',
+    uma3: '',
+    uma4: '',
     okaEnabled: true,
     startPoints: 0,
     returnPoints: 0,
     fractionRule: 'originRule',
-    rateSettings: 50,
+    rateSettings: '',
     chipEnabled: false,
-    chipRate: 100,
+    chipRate: '',
     tieRankingRule: 'split',
   });
   const [memo, setMemo] = useState('');
@@ -183,17 +183,29 @@ export default function InputPage() {
 
     setSaving(true);
     try {
+      const normalizedSettings: MahjongSettings = {
+        ...settings,
+        uma1: Number(settings.uma1) || 0,
+        uma2: Number(settings.uma2) || 0,
+        uma3: Number(settings.uma3) || 0,
+        uma4: Number(settings.uma4) || 0,
+        rateSettings: Number(settings.rateSettings) || 0,
+        chipRate: Number(settings.chipRate) || 0,
+        startPoints: Number(settings.startPoints) || 0,
+        returnPoints: Number(settings.returnPoints) || 0,
+      };
+
       const normalizedInputs = playerInputs.map(p => ({
         ...p,
         score: Number(p.score) || 0,
         chips: Number(p.chips) || 0
       }));
-      const results = calculateMatchResults(normalizedInputs, settings);
+      const results = calculateMatchResults(normalizedInputs, normalizedSettings);
       
       const matchData = {
         user_id: userId,
         date,
-        settings,
+        settings: normalizedSettings,
         memo,
         players_results: results.map((r, idx) => ({
           ...r,
@@ -321,8 +333,8 @@ export default function InputPage() {
                         type="number"
                         value={settings.uma1}
                         onChange={(e) => {
-                          const val = parseInt(e.target.value) || 0;
-                          setSettings({ ...settings, uma1: val, uma4: -val });
+                          const val = e.target.value === '' ? '' : parseInt(e.target.value) || 0;
+                          setSettings({ ...settings, uma1: val, uma4: val === '' ? '' : -val });
                         }}
                         className="glass-input w-full rounded-xl px-3 py-2 text-sm font-bold text-emerald-400"
                         placeholder="30"
@@ -336,8 +348,8 @@ export default function InputPage() {
                         type="number"
                         value={settings.uma2}
                         onChange={(e) => {
-                          const val = parseInt(e.target.value) || 0;
-                          setSettings({ ...settings, uma2: val, uma3: -val });
+                          const val = e.target.value === '' ? '' : parseInt(e.target.value) || 0;
+                          setSettings({ ...settings, uma2: val, uma3: val === '' ? '' : -val });
                         }}
                         className="glass-input w-full rounded-xl px-3 py-2 text-sm font-bold text-emerald-400"
                         placeholder="10"
@@ -401,7 +413,7 @@ export default function InputPage() {
                   <input
                     type="number"
                     value={settings.rateSettings}
-                    onChange={(e) => setSettings({ ...settings, rateSettings: parseInt(e.target.value) || 0 })}
+                    onChange={(e) => setSettings({ ...settings, rateSettings: e.target.value === '' ? '' : parseInt(e.target.value) || 0 })}
                     className="glass-input w-full rounded-xl px-3 py-2 text-sm pr-7"
                     placeholder="50"
                   />
@@ -430,7 +442,7 @@ export default function InputPage() {
                     <input
                       type="number"
                       value={settings.chipRate}
-                      onChange={(e) => setSettings({ ...settings, chipRate: parseInt(e.target.value) || 0 })}
+                      onChange={(e) => setSettings({ ...settings, chipRate: e.target.value === '' ? '' : parseInt(e.target.value) || 0 })}
                       className="glass-input w-full rounded-xl px-3 py-2 text-sm pr-7"
                       placeholder="100"
                     />
