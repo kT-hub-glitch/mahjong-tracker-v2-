@@ -303,8 +303,7 @@ export default function InputPage() {
                   <div>
                     <label className="block text-[10px] text-slate-500 mb-1 uppercase font-bold">開始点 (配給原点)</label>
                     <input
-                      type="text"
-                      inputMode="numeric"
+                      type="number"
                       value={settings.startPoints === 0 ? '00' : settings.startPoints}
                       onChange={(e) => setSettings({ ...settings, startPoints: parseInt(e.target.value) || 0 })}
                       className="glass-input w-full rounded-xl px-3 py-2 text-sm"
@@ -313,8 +312,7 @@ export default function InputPage() {
                   <div>
                     <label className="block text-[10px] text-slate-500 mb-1 uppercase font-bold">返し点 (原点)</label>
                     <input
-                      type="text"
-                      inputMode="numeric"
+                      type="number"
                       value={settings.returnPoints === 0 ? '00' : settings.returnPoints}
                       onChange={(e) => setSettings({ ...settings, returnPoints: parseInt(e.target.value) || 0 })}
                       className="glass-input w-full rounded-xl px-3 py-2 text-sm"
@@ -553,26 +551,53 @@ export default function InputPage() {
                   </select>
                   <div className="grid grid-cols-5 gap-2">
                     <div className="relative col-span-3">
+                      <button
+                        type="button"
+                        tabIndex={-1}
+                        onClick={() => {
+                          const current = input.score.toString();
+                          if (current === '00' || current === '0' || current === '') {
+                            handleScoreChange(idx, '-');
+                          } else {
+                            handleScoreChange(idx, current.startsWith('-') ? current.replace('-', '') : '-' + current);
+                          }
+                        }}
+                        className="absolute left-1.5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center text-slate-400 hover:text-emerald-400 bg-white/5 hover:bg-white/10 rounded-lg transition-colors font-bold text-sm"
+                      >
+                        ±
+                      </button>
                       <input
-                        type="text"
-                        inputMode="numeric"
+                        type="number"
                         value={input.score}
                         onChange={(e) => handleScoreChange(idx, e.target.value)}
-                        className="glass-input w-full rounded-xl px-3 py-2 text-lg font-bold text-right py-3"
+                        className="glass-input w-full rounded-xl pl-11 pr-3 text-lg font-bold text-right py-3"
                         placeholder="持ち点"
                       />
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] text-slate-500 font-bold">PTS</span>
                     </div>
                     {settings.chipEnabled && (
                       <div className="relative col-span-2">
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          onClick={() => {
+                            const current = input.chips.toString();
+                            if (current === '0' || current === '') {
+                              handleChipChange(idx, '-');
+                            } else {
+                              handleChipChange(idx, current.startsWith('-') ? current.replace('-', '') : '-' + current);
+                            }
+                          }}
+                          className="absolute left-1.5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center text-emerald-500/60 hover:text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10 rounded-lg transition-colors font-bold text-sm"
+                        >
+                          ±
+                        </button>
                         <input
                           type="number"
                           value={input.chips}
                           onChange={(e) => handleChipChange(idx, e.target.value)}
-                          className="glass-input w-full rounded-xl px-3 py-2 text-lg font-bold text-right text-emerald-400 py-3"
+                          className="glass-input w-full rounded-xl pl-11 pr-3 text-lg font-bold text-right text-emerald-400 py-3"
                           placeholder="枚数"
                         />
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] text-slate-500 font-bold">CHIP</span>
                       </div>
                     )}
                   </div>
