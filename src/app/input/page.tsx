@@ -333,8 +333,8 @@ export default function InputPage() {
                         type="number"
                         value={settings.uma1}
                         onChange={(e) => {
-                          const val = e.target.value === '' ? '' : parseInt(e.target.value) || 0;
-                          setSettings({ ...settings, uma1: val, uma4: val === '' ? '' : -val });
+                          const val = e.target.value;
+                          setSettings({ ...settings, uma1: val, uma4: val === '' || val === '-' ? '' : -(parseInt(val) || 0) });
                         }}
                         className="glass-input w-full rounded-xl px-3 py-2 text-sm font-bold text-emerald-400"
                         placeholder="30"
@@ -348,8 +348,8 @@ export default function InputPage() {
                         type="number"
                         value={settings.uma2}
                         onChange={(e) => {
-                          const val = e.target.value === '' ? '' : parseInt(e.target.value) || 0;
-                          setSettings({ ...settings, uma2: val, uma3: val === '' ? '' : -val });
+                          const val = e.target.value;
+                          setSettings({ ...settings, uma2: val, uma3: val === '' || val === '-' ? '' : -(parseInt(val) || 0) });
                         }}
                         className="glass-input w-full rounded-xl px-3 py-2 text-sm font-bold text-emerald-400"
                         placeholder="10"
@@ -413,7 +413,7 @@ export default function InputPage() {
                   <input
                     type="number"
                     value={settings.rateSettings}
-                    onChange={(e) => setSettings({ ...settings, rateSettings: e.target.value === '' ? '' : parseInt(e.target.value) || 0 })}
+                    onChange={(e) => setSettings({ ...settings, rateSettings: e.target.value })}
                     className="glass-input w-full rounded-xl px-3 py-2 text-sm pr-7"
                     placeholder="50"
                   />
@@ -442,7 +442,7 @@ export default function InputPage() {
                     <input
                       type="number"
                       value={settings.chipRate}
-                      onChange={(e) => setSettings({ ...settings, chipRate: e.target.value === '' ? '' : parseInt(e.target.value) || 0 })}
+                      onChange={(e) => setSettings({ ...settings, chipRate: e.target.value })}
                       className="glass-input w-full rounded-xl px-3 py-2 text-sm pr-7"
                       placeholder="100"
                     />
