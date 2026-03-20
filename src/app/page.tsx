@@ -26,6 +26,16 @@ export default function Home() {
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
   const router = useRouter();
 
+  const filteredMatches = useMemo(() => {
+    return matches.filter(m => {
+      const year = m.date.split('-')[0];
+      if (selectedYear !== 'all' && year !== selectedYear) return false;
+      if (startDate && m.date < startDate) return false;
+      if (endDate && m.date > endDate) return false;
+      return true;
+    });
+  }, [matches, selectedYear, startDate, endDate]);
+
   const years = useMemo(() => {
     const yearsSet = new Set<string>();
     matches.forEach(m => {
@@ -66,10 +76,10 @@ export default function Home() {
 
   useEffect(() => {
     if (players.length > 0) {
-      const newStats = calculateAllPlayerStats(matches, players, selectedYear === 'all' ? undefined : selectedYear, startDate || undefined, endDate || undefined);
+      const newStats = calculateAllPlayerStats(filteredMatches, players, selectedYear === 'all' ? undefined : selectedYear, startDate || undefined, endDate || undefined);
       setStats(newStats);
     }
-  }, [matches, players, selectedYear, startDate, endDate]);
+  }, [filteredMatches, players, selectedYear, startDate, endDate]);
 
   const handleToggleShare = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -204,7 +214,7 @@ export default function Home() {
               <History size={64} className="text-emerald-400" />
             </div>
             <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">Total Matches</div>
-            <div className="text-3xl font-mono font-bold text-white">{matches.length}</div>
+            <div className="text-3xl font-mono font-bold text-white">{filteredMatches.length}</div>
           </div>
           <div className="glass rounded-3xl p-5 relative overflow-hidden group border-white/20">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
