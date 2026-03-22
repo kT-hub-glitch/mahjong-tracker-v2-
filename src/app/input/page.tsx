@@ -150,12 +150,18 @@ export default function InputPage() {
     );
   };
 
+  // 現在存在する選手のみに絞り込んだ参加者IDリスト
+  const activeSessionPlayerIds = useMemo(() => {
+    const allPlayerIds = new Set(players.map(p => p.id));
+    return selectedSessionPlayerIds.filter(id => allPlayerIds.has(id));
+  }, [players, selectedSessionPlayerIds]);
+
   const filteredPlayers = useMemo(() => {
-    if (!isFilterEnabled || selectedSessionPlayerIds.length === 0) {
+    if (!isFilterEnabled || activeSessionPlayerIds.length === 0) {
       return players;
     }
-    return players.filter(p => selectedSessionPlayerIds.includes(p.id));
-  }, [players, selectedSessionPlayerIds, isFilterEnabled]);
+    return players.filter(p => activeSessionPlayerIds.includes(p.id));
+  }, [players, activeSessionPlayerIds, isFilterEnabled]);
 
   const handleYakumanChange = (index: number, checked: boolean) => {
     const newInputs = [...playerInputs];
@@ -467,7 +473,7 @@ export default function InputPage() {
               >
                 <Users size={16} /> 本日の参加者
                 <span className="bg-emerald-500/10 text-emerald-500 text-[10px] px-2 py-0.5 rounded-full">
-                  {selectedSessionPlayerIds.length}名設定中
+                  {activeSessionPlayerIds.length}名設定中
                 </span>
                 <ChevronRight size={14} className={`transition-transform ${showPlayerSelector ? 'rotate-90' : ''}`} />
               </div>

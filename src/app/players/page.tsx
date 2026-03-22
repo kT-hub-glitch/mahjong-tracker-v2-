@@ -12,6 +12,7 @@ import { UserPlus, Users, Trash2, Lock, Unlock } from 'lucide-react';
 export default function PlayersPage() {
   const [players, setPlayers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [localLockedPlayers, setLocalLockedPlayers] = useState<Set<string>>(new Set());
   const [newPlayerName, setNewPlayerName] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +54,6 @@ export default function PlayersPage() {
       setNewPlayerName('');
     }
   };
-
   const handleDeletePlayer = async (player: any) => {
     const confirmMessage = `選手「${player.name}」を削除しますか？\n\n※この選手を削除しても過去の対局記録は消えませんが、統計画面などで名前が正しく表示されなくなる可能性があります。本当に削除しますか？`;
     if (!confirm(confirmMessage)) return;
@@ -66,20 +66,17 @@ export default function PlayersPage() {
     }
   };
 
-  const handleToggleLock = async (player: any) => {
-    const newLockState = !player.is_locked;
-    const { error } = await supabase
-      .from('players')
-      .update({ is_locked: newLockState })
-      .eq('id', player.id);
-
-    if (error) {
-      alert('ロック状態の変更に失敗しました: ' + error.message);
-    } else {
-      setPlayers(players.map(p => p.id === player.id ? { ...p, is_locked: newLockState } : p));
-    }
+  const handleToggleLock = (player: any) => {
+    setLocalLockedPlayers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(player.id)) {
+        newSet.delete(player.id);
+      } else {
+        newSet.add(player.id);
+      }
+      return newSet;
+    });
   };
-
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -124,24 +121,26 @@ export default function PlayersPage() {
               選手がまだ登録されていません
             </div>
           ) : (
-            players.map((player) => (
+            players.map((player) => {
+              const isLocked = localLockedPlayers.has(player.id);
+              return (
               <div key={player.id} className="glass rounded-2xl px-5 py-4 flex justify-between items-center group">
                 <div className="flex items-center gap-3">
                   <p className="text-white font-medium">{player.name}</p>
-                  {player.is_locked && (
+                  {isLocked && (
                     <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full font-bold">LOCKED</span>
                   )}
                 </div>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => handleToggleLock(player)}
-                    className={`p-2 transition-colors rounded-xl ${player.is_locked ? 'text-amber-400 hover:bg-amber-400/10' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
-                    title={player.is_locked ? 'ロック解除' : 'ロックして保護'}
+                    className={`p-2 transition-colors rounded-xl ${isLocked ? 'text-amber-400 hover:bg-amber-400/10' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
+                    title={isLocked ? 'ロック解除' : 'ロックして保護'}
                   >
-                    {player.is_locked ? <Lock size={18} /> : <Unlock size={18} />}
+                    {isLocked ? <Lock size={18} /> : <Unlock size={18} />}
                   </button>
                   
-                  {!player.is_locked && (
+                  {!isLocked && (
                     <button
                       onClick={() => handleDeletePlayer(player)}
                       className="text-slate-600 hover:text-red-400 p-2 rounded-xl transition-colors hover:bg-red-500/10"
@@ -152,7 +151,7 @@ export default function PlayersPage() {
                   )}
                 </div>
               </div>
-            ))
+            )})
           )}
         </div>
       </div>
