@@ -34,7 +34,22 @@ export default function PlayersPage() {
     };
 
     fetchData();
+
+    // ローカルストレージからロック状態を復元
+    const savedLocked = localStorage.getItem('mahjong_locked_players');
+    if (savedLocked) {
+      try {
+        setLocalLockedPlayers(new Set(JSON.parse(savedLocked)));
+      } catch (e) {
+        console.error('Failed to load locked players', e);
+      }
+    }
   }, []);
+
+  // ロック状態が変更されたらローカルストレージに保存
+  useEffect(() => {
+    localStorage.setItem('mahjong_locked_players', JSON.stringify(Array.from(localLockedPlayers)));
+  }, [localLockedPlayers]);
 
   const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
