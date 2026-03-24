@@ -16,6 +16,7 @@ export default function PlayersPage() {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hiddenPlayerIds, setHiddenPlayerIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,7 +36,16 @@ export default function PlayersPage() {
 
     fetchData();
 
-    // ローカルストレージからロック状態を復元
+    // ローカルストレージから表示設定とロック状態を復元
+    const savedHidden = localStorage.getItem('mahjong_hidden_players');
+    if (savedHidden) {
+      try {
+        setHiddenPlayerIds(new Set(JSON.parse(savedHidden)));
+      } catch (e) {
+        console.error('Failed to load hidden players', e);
+      }
+    }
+
     const savedLocked = localStorage.getItem('mahjong_locked_players');
     if (savedLocked) {
       try {
@@ -46,10 +56,14 @@ export default function PlayersPage() {
     }
   }, []);
 
-  // ロック状態が変更されたらローカルストレージに保存
+  // ロック状態や非表示設定が変更されたらローカルストレージに保存
   useEffect(() => {
     localStorage.setItem('mahjong_locked_players', JSON.stringify(Array.from(localLockedPlayers)));
   }, [localLockedPlayers]);
+
+  useEffect(() => {
+    localStorage.setItem('mahjong_hidden_players', JSON.stringify(Array.from(hiddenPlayerIds)));
+  }, [hiddenPlayerIds]);
 
   const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,20 +95,16 @@ export default function PlayersPage() {
     }
   };
 
-  const handleToggleShowInRanking = async (player: any) => {
-    const newValue = !player.show_in_ranking;
-    const { error } = await supabase
-      .from('players')
-      .update({ show_in_ranking: newValue })
-      .eq('id', player.id);
-
-    if (error) {
-      alert('更新に失敗しました: ' + error.message);
-    } else {
-      setPlayers(prev => prev.map(p => 
-        p.id === player.id ? { ...p, show_in_ranking: newValue } : p
-      ));
-    }
+  const handleToggleShowInRanking = (playerId: string) => {
+    setHiddenPlayerIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(playerId)) {
+        newSet.delete(playerId);
+      } else {
+        newSet.add(playerId);
+      }
+      return newSet;
+    });
   };
 
   const handleToggleLock = (player: any) => {
@@ -165,11 +175,11 @@ export default function PlayersPage() {
                 </div>
                 <div className="flex items-center gap-1">
                   <button
-                    onClick={() => handleToggleShowInRanking(player)}
-                    className={`p-2 transition-colors rounded-xl ${player.show_in_ranking === false ? 'text-slate-500 hover:text-white hover:bg-white/5' : 'text-emerald-400 hover:bg-emerald-400/10'}`}
-                    title={player.show_in_ranking === false ? 'ランキングに表示' : 'ランキングで非表示'}
+                    onClick={() => handleToggleShowInRanking(player.id)}
+                    className={`p-2 transition-colors rounded-xl ${hiddenPlayerIds.has(player.id) ? 'text-slate-500 hover:text-white hover:bg-white/5' : 'text-emerald-400 hover:bg-emerald-400/10'}`}
+                    title={hiddenPlayerIds.has(player.id) ? 'ランキングに表示' : 'ランキングで非表示'}
                   >
-                    {player.show_in_ranking === false ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {hiddenPlayerIds.has(player.id) ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                   
                   <button

@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
-import { Users, History, TrendingUp, Filter, ChevronRight, Share2, Copy, Check } from 'lucide-react';
+import { Users, History, TrendingUp, Filter, ChevronRight, Share2, Copy, Check, Eye, EyeOff } from 'lucide-react';
 import { calculateAllPlayerStats, PlayerStats } from '@/lib/stats-logic';
 import PlayerStatsModal from '@/components/stats/PlayerStatsModal';
 
@@ -24,6 +24,7 @@ export default function Home() {
   const [isShareActive, setIsShareActive] = useState<boolean>(false);
   const [copied, setCopied] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
+  const [hiddenPlayerIds, setHiddenPlayerIds] = useState<Set<string>>(new Set());
   const router = useRouter();
 
   const filteredMatches = useMemo(() => {
@@ -116,6 +117,35 @@ export default function Home() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const handleToggleShowInRanking = (playerId: string) => {
+    setHiddenPlayerIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(playerId)) {
+        newSet.delete(playerId);
+      } else {
+        newSet.add(playerId);
+      }
+      return newSet;
+    });
+  };
+
+  // ローカルストレージから表示設定を復元
+  useEffect(() => {
+    const savedHidden = localStorage.getItem('mahjong_hidden_players');
+    if (savedHidden) {
+      try {
+        setHiddenPlayerIds(new Set(JSON.parse(savedHidden)));
+      } catch (e) {
+        console.error('Failed to load hidden players', e);
+      }
+    }
+  }, []);
+
+  // 非表示設定が変更されたらローカルストレージに保存
+  useEffect(() => {
+    localStorage.setItem('mahjong_hidden_players', JSON.stringify(Array.from(hiddenPlayerIds)));
+  }, [hiddenPlayerIds]);
 
   if (loading) {
     return (
@@ -221,7 +251,7 @@ export default function Home() {
               <Users size={64} className="text-emerald-400" />
             </div>
             <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">Active Players</div>
-            <div className="text-3xl font-mono font-bold text-white">{players.filter(p => p.show_in_ranking !== false).length}</div>
+            <div className="text-3xl font-mono font-bold text-white">{players.filter(p => !hiddenPlayerIds.has(p.id)).length}</div>
           </div>
         </div>
 
@@ -240,7 +270,7 @@ export default function Home() {
               </div>
             ) : (
               players
-                .filter(p => p.show_in_ranking !== false)
+                .filter(p => !hiddenPlayerIds.has(p.id))
                 .map(p => ({ ...p, stat: stats[p.id] }))
                 .filter(p => p.stat && p.stat.matchCount > 0)
                 .sort((a, b) => (b.stat?.totalPoints || 0) - (a.stat?.totalPoints || 0))
@@ -267,29 +297,50 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <div className="text-right">
-                      <div className={`text-xl font-mono font-bold ${(player.stat?.totalPoints || 0) > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {(player.stat?.totalPoints || 0) > 0 ? '+' : ''}{(player.stat?.totalPoints || 0).toFixed(1)}
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleShowInRanking(player.id);
+                          }}
+                          className="p-2 text-slate-500 hover:text-white transition-colors"
+                          title="非表示にする"
+                        >
+                          <EyeOff size={16} />
+                        </button>
+  
+                        <div className="text-right">
+                          <div className={`text-xl font-mono font-bold ${(player.stat?.totalPoints || 0) > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {(player.stat?.totalPoints || 0) > 0 ? '+' : ''}{(player.stat?.totalPoints || 0).toFixed(1)}
+                          </div>
+                          <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">PTS</div>
+                        </div>
+  
+                        <ChevronRight size={16} className="text-slate-600 group-hover:text-emerald-400 transition-colors" />
                       </div>
-                      <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">PTS</div>
-                    </div>
-
-                    <ChevronRight size={16} className="text-slate-600 group-hover:text-emerald-400 transition-colors" />
-                  </button>
+                    </button>
                 ))
             )}
 
             {/* まだ対局がない選手 */}
-            {players.filter(p => p.show_in_ranking !== false && (!stats[p.id] || stats[p.id].matchCount === 0)).length > 0 && (
+            {players.filter(p => !hiddenPlayerIds.has(p.id) && (!stats[p.id] || stats[p.id].matchCount === 0)).length > 0 && (
               <div className="pt-6 border-t border-white/10">
                 <p className="text-[10px] text-slate-500 font-bold uppercase px-1 mb-3">No Matches Recorded</p>
                 <div className="grid grid-cols-2 gap-3">
-                  {players.filter(p => p.show_in_ranking !== false && (!stats[p.id] || stats[p.id].matchCount === 0)).map(p => (
-                    <div key={p.id} className="glass rounded-2xl p-4 flex items-center gap-3 opacity-70 border-white/10">
-                      <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-xs text-slate-500">
-                        ?
+                  {players.filter(p => !hiddenPlayerIds.has(p.id) && (!stats[p.id] || stats[p.id].matchCount === 0)).map(p => (
+                    <div key={p.id} className="glass rounded-2xl p-4 flex items-center justify-between opacity-70 border-white/10">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-xs text-slate-500">
+                          ?
+                        </div>
+                        <span className="text-xs font-bold text-slate-300 truncate">{p.name}</span>
                       </div>
-                      <span className="text-xs font-bold text-slate-300 truncate">{p.name}</span>
+                      <button
+                        onClick={() => handleToggleShowInRanking(p.id)}
+                        className="p-1 text-slate-500 hover:text-white transition-colors"
+                      >
+                        <EyeOff size={14} />
+                      </button>
                     </div>
                   ))}
                 </div>

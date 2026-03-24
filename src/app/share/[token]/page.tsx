@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, use } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Users, History, TrendingUp, Filter, ChevronRight, Lock } from 'lucide-react';
+import { Users, History, TrendingUp, Filter, ChevronRight, Lock, Eye, EyeOff } from 'lucide-react';
 import { calculateAllPlayerStats, PlayerStats } from '@/lib/stats-logic';
 import PlayerStatsModal from '@/components/stats/PlayerStatsModal';
 
@@ -20,6 +20,7 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
   const [endDate, setEndDate] = useState('');
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'stats' | 'history'>('stats');
+  const [hiddenPlayerIds, setHiddenPlayerIds] = useState<Set<string>>(new Set());
 
   const years = useMemo(() => {
     const yearsSet = new Set<string>();
@@ -76,6 +77,35 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
       setStats(newStats);
     }
   }, [filteredMatches, players, selectedYear, startDate, endDate]);
+
+  const handleToggleShowInRanking = (playerId: string) => {
+    setHiddenPlayerIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(playerId)) {
+        newSet.delete(playerId);
+      } else {
+        newSet.add(playerId);
+      }
+      return newSet;
+    });
+  };
+
+  // ローカルストレージから表示設定を復元
+  useEffect(() => {
+    const savedHidden = localStorage.getItem('mahjong_hidden_players');
+    if (savedHidden) {
+      try {
+        setHiddenPlayerIds(new Set(JSON.parse(savedHidden)));
+      } catch (e) {
+        console.error('Failed to load hidden players', e);
+      }
+    }
+  }, []);
+
+  // 非表示設定が変更されたらローカルストレージに保存
+  useEffect(() => {
+    localStorage.setItem('mahjong_hidden_players', JSON.stringify(Array.from(hiddenPlayerIds)));
+  }, [hiddenPlayerIds]);
 
   if (loading) {
     return (
@@ -151,8 +181,8 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                 <Users size={64} className="text-emerald-400" />
               </div>
-            <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">Active Players</div>
-            <div className="text-3xl font-mono font-bold text-white">{players.filter(p => p.show_in_ranking !== false).length}</div>
+              <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">Active Players</div>
+              <div className="text-3xl font-mono font-bold text-white">{players.filter(p => !hiddenPlayerIds.has(p.id)).length}</div>
             </div>
           </div>
 
@@ -184,7 +214,7 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
               </div>
               <div className="space-y-3">
                 {players
-                  .filter(p => p.show_in_ranking !== false)
+                  .filter(p => !hiddenPlayerIds.has(p.id))
                   .map(p => ({ ...p, stat: stats[p.id] }))
                   .filter(p => p.stat && p.stat.matchCount > 0)
                   .sort((a, b) => (b.stat?.totalPoints || 0) - (a.stat?.totalPoints || 0))
@@ -207,9 +237,21 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
                         <div className="flex items-center gap-3 mt-1">
                           <span className="text-[10px] font-bold text-slate-400 uppercase">{player.stat?.matchCount} Matches</span>
                           <div className="w-1 h-1 bg-white/20 rounded-full" />
-                          <span className="text-[10px] font-bold text-slate-400 uppercase">Avg Rank: {player.stat?.avgRank.toFixed(2)}</span>
-                        </div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">Avg Rank: {player.stat?.avgRank.toFixed(2)}</span>
                       </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleShowInRanking(player.id);
+                        }}
+                        className="p-2 text-slate-500 hover:text-white transition-colors"
+                        title="非表示にする"
+                      >
+                        <EyeOff size={16} />
+                      </button>
 
                       <div className="text-right">
                         <div className={`text-xl font-mono font-bold ${(player.stat?.totalPoints || 0) > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -219,7 +261,8 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
                       </div>
 
                       <ChevronRight size={16} className="text-slate-600 group-hover:text-emerald-400 transition-colors" />
-                    </button>
+                    </div>
+                  </button>
                   ))}
               </div>
             </section>
