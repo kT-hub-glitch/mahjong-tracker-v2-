@@ -265,6 +265,31 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
                   </button>
                   ))}
               </div>
+
+              {/* 非表示の選手リスト（再表示用） */}
+              {hiddenPlayerIds.size > 0 && (
+                <div className="space-y-3 pt-8 border-t border-white/10 mt-4">
+                  <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">
+                    Hidden Players ({hiddenPlayerIds.size})
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {players
+                      .filter(p => hiddenPlayerIds.has(p.id))
+                      .map(player => (
+                        <div key={player.id} className="glass rounded-xl px-3 py-2 flex items-center justify-between bg-white/5 border-white/5 opacity-60 hover:opacity-100 transition-opacity">
+                          <span className="text-xs font-bold text-slate-400 truncate mr-2">{player.name}</span>
+                          <button
+                            onClick={() => handleToggleShowInRanking(player.id)}
+                            className="p-1.5 text-slate-400 hover:text-emerald-400 transition-colors"
+                            title="表示に戻す"
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
             </section>
           ) : (
             <section className="space-y-6">
