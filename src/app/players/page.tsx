@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import MainLayout from '@/components/layout/MainLayout';
-import { UserPlus, Users, Trash2, Lock, Unlock } from 'lucide-react';
+import { UserPlus, Users, Trash2, Lock, Unlock, Eye, EyeOff } from 'lucide-react';
 
 /**
  * 選手管理ページ（個人管理版）
@@ -81,6 +81,22 @@ export default function PlayersPage() {
     }
   };
 
+  const handleToggleShowInRanking = async (player: any) => {
+    const newValue = !player.show_in_ranking;
+    const { error } = await supabase
+      .from('players')
+      .update({ show_in_ranking: newValue })
+      .eq('id', player.id);
+
+    if (error) {
+      alert('更新に失敗しました: ' + error.message);
+    } else {
+      setPlayers(prev => prev.map(p => 
+        p.id === player.id ? { ...p, show_in_ranking: newValue } : p
+      ));
+    }
+  };
+
   const handleToggleLock = (player: any) => {
     setLocalLockedPlayers(prev => {
       const newSet = new Set(prev);
@@ -92,6 +108,7 @@ export default function PlayersPage() {
       return newSet;
     });
   };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -147,6 +164,14 @@ export default function PlayersPage() {
                   )}
                 </div>
                 <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleToggleShowInRanking(player)}
+                    className={`p-2 transition-colors rounded-xl ${player.show_in_ranking === false ? 'text-slate-500 hover:text-white hover:bg-white/5' : 'text-emerald-400 hover:bg-emerald-400/10'}`}
+                    title={player.show_in_ranking === false ? 'ランキングに表示' : 'ランキングで非表示'}
+                  >
+                    {player.show_in_ranking === false ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                  
                   <button
                     onClick={() => handleToggleLock(player)}
                     className={`p-2 transition-colors rounded-xl ${isLocked ? 'text-amber-400 hover:bg-amber-400/10' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}

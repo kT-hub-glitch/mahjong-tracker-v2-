@@ -3,6 +3,7 @@ CREATE TABLE players (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL, -- Supabase AuthのユーザーID
   name TEXT NOT NULL,
+  show_in_ranking BOOLEAN DEFAULT TRUE, -- ランキングに表示するかどうか
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

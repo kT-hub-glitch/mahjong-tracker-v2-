@@ -221,7 +221,7 @@ export default function Home() {
               <Users size={64} className="text-emerald-400" />
             </div>
             <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">Active Players</div>
-            <div className="text-3xl font-mono font-bold text-white">{players.length}</div>
+            <div className="text-3xl font-mono font-bold text-white">{players.filter(p => p.show_in_ranking !== false).length}</div>
           </div>
         </div>
 
@@ -240,6 +240,7 @@ export default function Home() {
               </div>
             ) : (
               players
+                .filter(p => p.show_in_ranking !== false)
                 .map(p => ({ ...p, stat: stats[p.id] }))
                 .filter(p => p.stat && p.stat.matchCount > 0)
                 .sort((a, b) => (b.stat?.totalPoints || 0) - (a.stat?.totalPoints || 0))
@@ -279,11 +280,11 @@ export default function Home() {
             )}
 
             {/* まだ対局がない選手 */}
-            {players.filter(p => !stats[p.id] || stats[p.id].matchCount === 0).length > 0 && (
+            {players.filter(p => p.show_in_ranking !== false && (!stats[p.id] || stats[p.id].matchCount === 0)).length > 0 && (
               <div className="pt-6 border-t border-white/10">
                 <p className="text-[10px] text-slate-500 font-bold uppercase px-1 mb-3">No Matches Recorded</p>
                 <div className="grid grid-cols-2 gap-3">
-                  {players.filter(p => !stats[p.id] || stats[p.id].matchCount === 0).map(p => (
+                  {players.filter(p => p.show_in_ranking !== false && (!stats[p.id] || stats[p.id].matchCount === 0)).map(p => (
                     <div key={p.id} className="glass rounded-2xl p-4 flex items-center gap-3 opacity-70 border-white/10">
                       <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-xs text-slate-500">
                         ?

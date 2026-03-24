@@ -151,8 +151,8 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                 <Users size={64} className="text-emerald-400" />
               </div>
-              <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">Active Players</div>
-              <div className="text-3xl font-mono font-bold text-white">{players.length}</div>
+            <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">Active Players</div>
+            <div className="text-3xl font-mono font-bold text-white">{players.filter(p => p.show_in_ranking !== false).length}</div>
             </div>
           </div>
 
@@ -184,6 +184,7 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
               </div>
               <div className="space-y-3">
                 {players
+                  .filter(p => p.show_in_ranking !== false)
                   .map(p => ({ ...p, stat: stats[p.id] }))
                   .filter(p => p.stat && p.stat.matchCount > 0)
                   .sort((a, b) => (b.stat?.totalPoints || 0) - (a.stat?.totalPoints || 0))
