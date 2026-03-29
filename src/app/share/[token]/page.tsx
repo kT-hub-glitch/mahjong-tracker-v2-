@@ -217,7 +217,7 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
                   .filter(p => !hiddenPlayerIds.has(p.id))
                   .map(p => ({ ...p, stat: stats[p.id] }))
                   .filter(p => p.stat && p.stat.matchCount > 0)
-                  .sort((a, b) => (b.stat?.totalPoints || 0) - (a.stat?.totalPoints || 0))
+                  .sort((a, b) => ((b.stat?.totalPoints || 0) + (b.stat?.totalChipPoints || 0)) - ((a.stat?.totalPoints || 0) + (a.stat?.totalChipPoints || 0)))
                   .map((player, idx) => (
                     <button
                       key={player.id}
@@ -254,10 +254,10 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
                       </button>
 
                       <div className="text-right">
-                        <div className={`text-xl font-mono font-bold ${(player.stat?.totalPoints || 0) > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {(player.stat?.totalPoints || 0) > 0 ? '+' : ''}{(player.stat?.totalPoints || 0).toFixed(1)}
+                        <div className={`text-xl font-mono font-bold ${((player.stat?.totalPoints || 0) + (player.stat?.totalChipPoints || 0)) > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {((player.stat?.totalPoints || 0) + (player.stat?.totalChipPoints || 0)) > 0 ? '+' : ''}{((player.stat?.totalPoints || 0) + (player.stat?.totalChipPoints || 0)).toFixed(1)}
                         </div>
-                        <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">PTS</div>
+                        <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider underline decoration-emerald-500/30 underline-offset-4">PTS (Total)</div>
                       </div>
 
                       <ChevronRight size={16} className="text-slate-600 group-hover:text-emerald-400 transition-colors" />

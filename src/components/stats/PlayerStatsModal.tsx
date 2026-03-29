@@ -12,6 +12,7 @@ interface PlayerStatsModalProps {
 }
 
 export default function PlayerStatsModal({ player, stats, year, onClose }: PlayerStatsModalProps) {
+  const [graphRange, setGraphRange] = React.useState<10 | 50>(10);
   if (!stats) return null;
 
   const ranks = [
@@ -159,16 +160,34 @@ export default function PlayerStatsModal({ player, stats, year, onClose }: Playe
             </div>
           </div>
 
-          {/* 直近10戦のトレンドグラフ (着順) */}
+          {/* 直近戦のトレンドグラフ (着順) */}
           <div className="space-y-4">
-            <h3 className="text-[11px] font-extrabold text-slate-400 uppercase flex items-center gap-2 px-1 tracking-widest text-emerald-500">
-              <TrendingUp size={14} /> 直近10戦の着順推移
-            </h3>
+            <div className="flex justify-between items-center px-1">
+              <h3 className="text-[11px] font-extrabold text-slate-400 uppercase flex items-center gap-2 tracking-widest text-emerald-500">
+                <TrendingUp size={14} /> 直近の着順推移
+              </h3>
+              <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
+                <button 
+                  onClick={() => setGraphRange(10)}
+                  className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all ${graphRange === 10 ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                  10戦
+                </button>
+                <button 
+                  onClick={() => setGraphRange(50)}
+                  className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all ${graphRange === 50 ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                  50戦
+                </button>
+              </div>
+            </div>
+            
             <div className="glass-dark rounded-3xl p-6 border border-white/5 overflow-hidden">
               {stats.recentResults && stats.recentResults.length > 0 ? (
                 <div className="relative h-44 w-full group">
                   {(() => {
-                    const data = [...stats.recentResults].reverse(); // 時系列を古→新に
+                    const data = [...stats.recentResults].slice(0, graphRange).reverse(); // 指定範囲を古→新に
+                    const isCompact = graphRange > 20;
                     
                     // 各ランクのY座標 (1st=top, 4th=bottom)
                     const getY = (rank: number) => 15 + (rank - 1) * 23.3; 
@@ -200,7 +219,7 @@ export default function PlayerStatsModal({ player, stats, year, onClose }: Playe
                           {[1, 2, 3, 4].map(r => (
                             <g key={r}>
                               <line x1="0" y1={getY(r)} x2="100" y2={getY(r)} stroke="white" strokeWidth="0.5" strokeOpacity="0.05" />
-                              <text x="-2" y={getY(r) + 1} textAnchor="end" fontSize="3" fill="slate-500" className="opacity-40 font-bold">{r}</text>
+                              <text x="-2" y={getY(r) + 1} textAnchor="end" fontSize="3" fill="currentColor" className="text-slate-500 opacity-40 font-bold">{r}</text>
                             </g>
                           ))}
                           
@@ -220,7 +239,7 @@ export default function PlayerStatsModal({ player, stats, year, onClose }: Playe
                             points={pointsStr}
                             fill="none"
                             stroke="rgba(255, 255, 255, 0.2)"
-                            strokeWidth="1.5"
+                            strokeWidth={isCompact ? "0.8" : "1.5"}
                             strokeLinecap="round"
                             strokeLinejoin="round"
                           />
@@ -235,20 +254,22 @@ export default function PlayerStatsModal({ player, stats, year, onClose }: Playe
                                 <circle
                                   cx={x}
                                   cy={y}
-                                  r="2.8"
+                                  r={isCompact ? "1.2" : "2.8"}
                                   fill={color}
                                   stroke="#1e293b"
-                                  strokeWidth="0.5"
+                                  strokeWidth={isCompact ? "0.2" : "0.5"}
                                   className="transition-all duration-300"
                                 />
-                                <circle
-                                  cx={x}
-                                  cy={y}
-                                  r="1"
-                                  fill="white"
-                                  className="opacity-80"
-                                />
-                                <text x={x} y={y - 6} textAnchor="middle" fontSize="4" fill="white" className="opacity-0 group-hover:opacity-100 font-mono">
+                                {!isCompact && (
+                                  <circle
+                                    cx={x}
+                                    cy={y}
+                                    r="1"
+                                    fill="white"
+                                    className="opacity-80"
+                                  />
+                                )}
+                                <text x={x} y={y - (isCompact ? 4 : 6)} textAnchor="middle" fontSize={isCompact ? "3" : "4"} fill="white" className="opacity-0 group-hover:opacity-100 font-mono">
                                   {d.rank}位
                                 </text>
                               </g>
@@ -258,7 +279,7 @@ export default function PlayerStatsModal({ player, stats, year, onClose }: Playe
                         
                         <div className="flex justify-between mt-4 text-[8px] font-bold text-slate-500 uppercase tracking-tighter">
                           <span>{data.length}試合前</span>
-                          <span className="text-emerald-500/50">Average Rank Track</span>
+                          <span className="text-emerald-500/50">Average Rank Track ({graphRange} Match Average)</span>
                           <span>最新</span>
                         </div>
                       </>

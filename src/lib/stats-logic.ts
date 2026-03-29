@@ -112,8 +112,8 @@ export function calculateAllPlayerStats(matches: any[], players: any[], targetYe
       s.yakumanCount += p.yakumanCount || 0;
       if (p.score > s.maxScore) s.maxScore = p.score;
 
-      // 直近10戦のデータを追加 (matchesが降順の場合、最初の方に追加される)
-      if (s.recentResults.length < 10) {
+      // 直近50戦のデータを追加 (matchesが降順の場合、最初の方に追加される)
+      if (s.recentResults.length < 50) {
         s.recentResults.push({
           matchId: match.id,
           date: match.date,
