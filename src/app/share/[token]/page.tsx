@@ -313,47 +313,65 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
                           </div>
 
                           <div className="space-y-3">
-                            {match.players_results.sort((a: any, b: any) => a.rank - b.rank).map((p: any) => (
-                              <div key={p.playerId} className="grid grid-cols-12 items-center gap-1">
-                                <div className="col-span-4 flex items-center gap-1.5 min-w-0">
-                                  <span className={`w-4 h-4 shrink-0 flex items-center justify-center rounded-full text-[9px] font-bold ${
-                                    p.rank === 1 ? 'bg-yellow-500/20 text-yellow-500' : 'bg-white/5 text-slate-400'
-                                  }`}>
-                                    {p.rank}
-                                  </span>
-                                  <span className="text-white text-[11px] font-medium truncate">{p.name}</span>
-                                </div>
-      
-                                <div className="col-span-3 text-right">
-                                  <span className="text-[8px] text-slate-500 block leading-none mb-0.5">SCORE</span>
-                                  <span className="text-white text-[10px] font-mono whitespace-nowrap">{(p.score || 0).toLocaleString()}</span>
-                                </div>
-      
-                                {match.settings.chipEnabled ? (
-                                  <>
-                                    <div className="col-span-2 text-right">
-                                      <span className="text-[8px] text-slate-500 block leading-none mb-0.5">CHIP</span>
-                                      <span className={`text-[10px] font-mono font-bold ${(p.chips || 0) > 0 ? 'text-emerald-400' : (p.chips || 0) < 0 ? 'text-red-400' : 'text-slate-500'}`}>
-                                        {(p.chips || 0) > 0 ? '+' : ''}{p.chips || 0}
+                              {match.players_results.sort((a: any, b: any) => a.rank - b.rank).map((p: any) => {
+                                const chipRate = Number(match.settings.chipRate) || 0;
+                                const rateSettings = Number(match.settings.rateSettings) || 0;
+                                const cPoints = p.chipPoints !== undefined 
+                                  ? p.chipPoints 
+                                  : (match.settings.chipEnabled && rateSettings > 0 
+                                    ? ((p.chips || 0) * chipRate) / rateSettings 
+                                    : 0);
+                                const totalCombinedPoints = (p.totalPoints || 0) + cPoints;
+
+                                return (
+                                <div key={p.playerId} className="grid grid-cols-12 items-center gap-1">
+                                  <div className="col-span-4 flex items-center gap-1.5 min-w-0">
+                                    <span className={`w-4 h-4 shrink-0 flex items-center justify-center rounded-full text-[9px] font-bold ${
+                                      p.rank === 1 ? 'bg-yellow-500/20 text-yellow-500' : 
+                                      p.rank === 4 ? 'bg-slate-500/20 text-slate-500' : 'bg-white/5 text-slate-400'
+                                    }`}>
+                                      {p.rank}
+                                    </span>
+                                    <span className="text-white text-[11px] font-medium truncate">{p.name}</span>
+                                  </div>
+        
+                                  {/* 点数 (PTS) */}
+                                  <div className="col-span-3 text-right">
+                                    <span className="text-[8px] text-slate-500 block leading-none mb-0.5">SCORE (PTS)</span>
+                                    <div className="flex flex-col items-end">
+                                      <span className="text-white text-[10px] font-mono leading-none">{(p.score || 0).toLocaleString()}</span>
+                                      <span className={`text-[9px] font-mono font-bold ${p.totalPoints > 0 ? 'text-emerald-400' : p.totalPoints < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                        ({p.totalPoints > 0 ? '+' : ''}{p.totalPoints.toFixed(1)})
                                       </span>
                                     </div>
-                                    <div className="col-span-3 text-right">
+                                  </div>
+        
+                                  {match.settings.chipEnabled ? (
+                                    <>
+                                      <div className="col-span-2 text-right border-l border-white/5 pl-1">
+                                        <span className="text-[8px] text-slate-500 block leading-none mb-0.5">CHIP</span>
+                                        <span className={`text-[10px] font-mono font-bold ${(p.chips || 0) > 0 ? 'text-emerald-400' : (p.chips || 0) < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                          {(p.chips || 0) > 0 ? '+' : ''}{p.chips || 0}
+                                        </span>
+                                      </div>
+                                      {/* チップ込スコア (総合ポイント) */}
+                                      <div className="col-span-3 text-right">
+                                        <span className="text-[8px] text-slate-500 block leading-none mb-0.5 text-emerald-500/70">TOTAL PTS</span>
+                                        <span className={`text-[10px] font-mono font-bold ${totalCombinedPoints > 0 ? 'text-emerald-400' : totalCombinedPoints < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                          {totalCombinedPoints > 0 ? '+' : ''}{totalCombinedPoints.toFixed(1)}
+                                        </span>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="col-span-5 text-right">
                                       <span className="text-[8px] text-slate-500 block leading-none mb-0.5">PTS</span>
                                       <span className={`text-[10px] font-mono font-bold ${p.totalPoints > 0 ? 'text-emerald-400' : p.totalPoints < 0 ? 'text-red-400' : 'text-slate-500'}`}>
                                         {p.totalPoints > 0 ? '+' : ''}{p.totalPoints.toFixed(1)}
                                       </span>
                                     </div>
-                                  </>
-                                ) : (
-                                  <div className="col-span-5 text-right">
-                                    <span className="text-[8px] text-slate-500 block leading-none mb-0.5">PTS</span>
-                                    <span className={`text-[10px] font-mono font-bold ${p.totalPoints > 0 ? 'text-emerald-400' : p.totalPoints < 0 ? 'text-red-400' : 'text-slate-500'}`}>
-                                      {p.totalPoints > 0 ? '+' : ''}{p.totalPoints.toFixed(1)}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
+                                  )}
+                                </div>
+                              )})}
                           </div>
                         </div>
                       ))}
