@@ -29,8 +29,9 @@ export interface PlayerInput {
 export interface PlayerResult extends PlayerInput {
   rank: number;
   pointAdjust: number; // ウマ・オカの加減
-  totalPoints: number; // 最終的なpt
-  totalMoney: number;  // 最終的な金額
+  chipPoints: number;  // チップをポイント換算したもの
+  totalPoints: number; // 最終的なpt (チップ含まず)
+  totalMoney: number;  // 最終的な金額 (チップ含む)
 }
 
 /**
@@ -118,11 +119,16 @@ export function calculateMatchResults(
       const moneyFromPoints = totalPoints * rateSettings;
       const moneyFromChips = player.chips * (settings.chipEnabled ? chipRate : 0);
       const totalMoney = Math.round(moneyFromPoints + moneyFromChips);
+      
+      const chipPoints = settings.chipEnabled && rateSettings > 0 
+        ? (player.chips * chipRate) / rateSettings 
+        : 0;
 
       results[originalIdx] = {
         ...player,
         rank: i + 1,
         pointAdjust: avgAdjust,
+        chipPoints,
         totalPoints,
         totalMoney
       };

@@ -224,7 +224,7 @@ export default function InputPage() {
         }))
       };
 
-      const params = new URLSearchParams(window.location.search);
+      const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
       const editId = params.get('edit');
 
       let error;
@@ -521,21 +521,55 @@ export default function InputPage() {
                 <Users size={16} /> 点数入力
               </div>
               <div className="flex flex-wrap gap-2">
-                <div className={`text-[10px] font-bold px-3 py-1.5 rounded-xl border flex items-center gap-1.5 ${isTotalValid ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-500'}`}>
+                <div className={`text-[10px] font-bold px-3 py-1.5 rounded-xl border flex items-center gap-2 ${isTotalValid ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-500'}`}>
                   <span>点数: {currentTotal.toLocaleString()} / {targetTotal.toLocaleString()}</span>
                   {!isTotalValid && (
-                    <span className="opacity-80">
+                    <span className="opacity-80 ml-1">
                       ({currentTotal > targetTotal ? '+' : ''}{(currentTotal - targetTotal).toLocaleString()} 点)
                     </span>
                   )}
+                  {/* 点数自動計算ボタン */}
+                  {!isTotalValid && playerInputs.filter(p => p.score !== '').length === 3 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const idx = playerInputs.findIndex(p => p.score === '');
+                        if (idx !== -1) {
+                          const othersTotal = playerInputs.reduce((sum, p, i) => i === idx ? sum : sum + (Number(p.score) || 0) * 100, 0);
+                          const remaining = (targetTotal - othersTotal) / 100;
+                          handleScoreChange(idx, remaining.toString());
+                        }
+                      }}
+                      className="ml-2 bg-emerald-600 hover:bg-emerald-500 text-white px-2 py-0.5 rounded-lg transition-colors whitespace-nowrap shadow-sm active:scale-95"
+                    >
+                      補完
+                    </button>
+                  )}
                 </div>
                 {settings.chipEnabled && (
-                  <div className={`text-[10px] font-bold px-3 py-1.5 rounded-xl border flex items-center gap-1.5 ${isChipTotalValid ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-500'}`}>
+                  <div className={`text-[10px] font-bold px-3 py-1.5 rounded-xl border flex items-center gap-2 ${isChipTotalValid ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-500'}`}>
                     <span>チップ合計: {currentChipTotal > 0 ? `+${currentChipTotal}` : currentChipTotal}</span>
                     {!isChipTotalValid && (
-                      <span className="opacity-80">
+                      <span className="opacity-80 ml-1 font-mono">
                         ({currentChipTotal > 0 ? `${currentChipTotal} 枚オーバー` : `${Math.abs(currentChipTotal)} 枚不足`})
                       </span>
+                    )}
+                    {/* チップ自動計算ボタン */}
+                    {!isChipTotalValid && playerInputs.filter(p => p.chips !== '').length === 3 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const idx = playerInputs.findIndex(p => p.chips === '');
+                          if (idx !== -1) {
+                            const othersTotal = playerInputs.reduce((sum, p, i) => i === idx ? sum : sum + (Number(p.chips) || 0), 0);
+                            const remaining = 0 - othersTotal;
+                            handleChipChange(idx, remaining.toString());
+                          }
+                        }}
+                        className="ml-2 bg-emerald-600 hover:bg-emerald-500 text-white px-2 py-0.5 rounded-lg transition-colors whitespace-nowrap shadow-sm active:scale-95"
+                      >
+                        補完
+                      </button>
                     )}
                   </div>
                 )}
@@ -543,11 +577,11 @@ export default function InputPage() {
             </div>
 
             {playerInputs.map((input, idx) => (
-              <div key={idx} className="glass rounded-2xl p-4 flex gap-3 items-center">
-                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-bold text-slate-500">
+              <div key={idx} className="glass rounded-2xl p-4 flex gap-3 items-center relative overflow-hidden">
+                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-bold text-slate-500 z-10">
                   {idx + 1}
                 </div>
-                <div className="flex-1 space-y-2">
+                <div className="flex-1 space-y-2 z-10">
                   <select
                     value={input.playerId}
                     onChange={(e) => handlePlayerChange(idx, e.target.value)}
@@ -612,6 +646,11 @@ export default function InputPage() {
                           className="glass-input w-full rounded-xl pl-11 pr-3 text-lg font-bold text-right text-emerald-400 py-3"
                           placeholder="枚数"
                         />
+                        {settings.chipEnabled && Number(settings.rateSettings) > 0 && (
+                          <div className="absolute -bottom-5 right-0 text-[9px] font-bold text-emerald-500/80 italic">
+                            {((Number(input.chips) || 0) * (Number(settings.chipRate) || 0) / Number(settings.rateSettings)).toFixed(1)}pt
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

@@ -1,22 +1,15 @@
 {
   "name": "Mahjong Tracker v2",
   "short_name": "Mahjong",
-  "description": "対局記録を美しく、簡単に管理。役満回数や直接対決の統計も。",
+  "description": "対局記録を美しく、簡単に管理。",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#020617",
-  "theme_color": "#059669",
-  "orientation": "portrait",
+  "theme_color": "#020617",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/3408/3408545.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/3408/3408545.png",
-      "sizes": "512x512",
+      "src": "/icon.png",
+      "sizes": "1024x1024",
       "type": "image/png"
     }
   ]

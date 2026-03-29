@@ -84,19 +84,35 @@ export default function PlayerStatsModal({ player, stats, year, onClose }: Playe
               </div>
             </div>
 
-            {/* 2行目 */}
+            {/* 2行目: ポイント内訳 */}
             <div className="p-5 glass rounded-3xl border-white/20 space-y-2 relative overflow-hidden group">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">合計ポイント</span>
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">合計ポイント (素点)</span>
               <div className={`text-3xl font-mono font-bold ${stats.totalPoints >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                 {stats.totalPoints >= 0 ? '+' : ''}{stats.totalPoints.toFixed(1)}
               </div>
             </div>
             <div className="p-5 glass rounded-3xl border-white/20 space-y-2 relative overflow-hidden group">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">平均ポイント</span>
-              <div className={`text-3xl font-mono font-bold ${stats.avgPoints >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {stats.avgPoints >= 0 ? '+' : ''}{stats.avgPoints.toFixed(2)}
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">合計ポイント (チップ)</span>
+              <div className={`text-3xl font-mono font-bold ${stats.totalChipPoints >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                {stats.totalChipPoints >= 0 ? '+' : ''}{stats.totalChipPoints.toFixed(1)}
               </div>
             </div>
+
+            {/* 3行目: 総合ポイント */}
+            <div className="col-span-2 p-6 glass rounded-3xl border-emerald-500/40 space-y-2 relative overflow-hidden group bg-emerald-500/5">
+              <div className="absolute top-0 right-0 p-4 opacity-10">
+                <Trophy size={48} className="text-emerald-400" />
+              </div>
+              <span className="text-[11px] text-emerald-400 font-extrabold uppercase tracking-[0.2em] mb-1 block">総合ポイント (素点 + チップ)</span>
+              <div className={`text-5xl font-mono font-bold ${stats.totalPoints + stats.totalChipPoints >= 0 ? 'text-emerald-400' : 'text-red-400'} tracking-tighter drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]`}>
+                {stats.totalPoints + stats.totalChipPoints >= 0 ? '+' : ''}{(stats.totalPoints + stats.totalChipPoints).toFixed(1)}
+              </div>
+              <div className="text-[10px] font-bold text-slate-500 mt-2 flex gap-4">
+                <span>平均素点: {stats.avgPoints.toFixed(2)}pt</span>
+                <span>平均チップ: {stats.avgChipPoints.toFixed(2)}pt</span>
+              </div>
+            </div>
+
             <div className="p-5 glass rounded-3xl border-white/20 space-y-2 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-3 opacity-5">
                 <TrendingUp size={40} className="text-emerald-400" />
@@ -140,6 +156,120 @@ export default function PlayerStatsModal({ player, stats, year, onClose }: Playe
               <div className={`text-3xl font-mono font-bold ${stats.totalChips >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                 {stats.totalChips >= 0 ? '+' : ''}{stats.totalChips} <span className="text-lg opacity-40 ml-1">枚</span>
               </div>
+            </div>
+          </div>
+
+          {/* 直近10戦のトレンドグラフ (着順) */}
+          <div className="space-y-4">
+            <h3 className="text-[11px] font-extrabold text-slate-400 uppercase flex items-center gap-2 px-1 tracking-widest text-emerald-500">
+              <TrendingUp size={14} /> 直近10戦の着順推移
+            </h3>
+            <div className="glass-dark rounded-3xl p-6 border border-white/5 overflow-hidden">
+              {stats.recentResults && stats.recentResults.length > 0 ? (
+                <div className="relative h-44 w-full group">
+                  {(() => {
+                    const data = [...stats.recentResults].reverse(); // 時系列を古→新に
+                    
+                    // 各ランクのY座標 (1st=top, 4th=bottom)
+                    const getY = (rank: number) => 15 + (rank - 1) * 23.3; 
+                    
+                    const pointsStr = data.map((d, i) => {
+                      const x = (i / (Math.max(data.length - 1, 1))) * 100;
+                      const y = getY(d.rank);
+                      return `${x},${y}`;
+                    }).join(' ');
+
+                    const rankColors = ['#10b981', '#06b6d4', '#94a3b8', '#ef4444'];
+                    
+                    // 移動平均の計算 (dashed line)
+                    const movingAvg: {x: number, y: number}[] = [];
+                    let sum = 0;
+                    data.forEach((d, i) => {
+                      sum += d.rank;
+                      movingAvg.push({
+                        x: (i / (Math.max(data.length - 1, 1))) * 100,
+                        y: getY(sum / (i + 1))
+                      });
+                    });
+                    const avgPointsStr = movingAvg.map(p => `${p.x},${p.y}`).join(' ');
+
+                    return (
+                      <>
+                        <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
+                          {/* 背景グリッド (各ランクのライン) */}
+                          {[1, 2, 3, 4].map(r => (
+                            <g key={r}>
+                              <line x1="0" y1={getY(r)} x2="100" y2={getY(r)} stroke="white" strokeWidth="0.5" strokeOpacity="0.05" />
+                              <text x="-2" y={getY(r) + 1} textAnchor="end" fontSize="3" fill="slate-500" className="opacity-40 font-bold">{r}</text>
+                            </g>
+                          ))}
+                          
+                          {/* 平均トレンドライン (dashed) */}
+                          <polyline
+                            points={avgPointsStr}
+                            fill="none"
+                            stroke="white"
+                            strokeWidth="0.8"
+                            strokeOpacity="0.2"
+                            strokeDasharray="2 2"
+                            strokeLinecap="round"
+                          />
+
+                          {/* メインのライン */}
+                          <polyline
+                            points={pointsStr}
+                            fill="none"
+                            stroke="rgba(255, 255, 255, 0.2)"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+
+                          {/* 各対局のドット */}
+                          {data.map((d, i) => {
+                            const x = (i / (Math.max(data.length - 1, 1))) * 100;
+                            const y = getY(d.rank);
+                            const color = rankColors[d.rank - 1] || '#94a3b8';
+                            return (
+                              <g key={i} className="cursor-help transition-transform hover:scale-110">
+                                <circle
+                                  cx={x}
+                                  cy={y}
+                                  r="2.8"
+                                  fill={color}
+                                  stroke="#1e293b"
+                                  strokeWidth="0.5"
+                                  className="transition-all duration-300"
+                                />
+                                <circle
+                                  cx={x}
+                                  cy={y}
+                                  r="1"
+                                  fill="white"
+                                  className="opacity-80"
+                                />
+                                <text x={x} y={y - 6} textAnchor="middle" fontSize="4" fill="white" className="opacity-0 group-hover:opacity-100 font-mono">
+                                  {d.rank}位
+                                </text>
+                              </g>
+                            );
+                          })}
+                        </svg>
+                        
+                        <div className="flex justify-between mt-4 text-[8px] font-bold text-slate-500 uppercase tracking-tighter">
+                          <span>{data.length}試合前</span>
+                          <span className="text-emerald-500/50">Average Rank Track</span>
+                          <span>最新</span>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              ) : (
+                <div className="h-40 flex items-center justify-center text-[10px] text-slate-500 italic uppercase font-bold tracking-widest border border-dashed border-white/5 rounded-2xl">
+                  十分なデータがありません
+                </div>
+              )}
             </div>
           </div>
 

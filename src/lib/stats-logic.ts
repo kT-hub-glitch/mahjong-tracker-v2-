@@ -6,6 +6,7 @@ export interface PlayerStats {
   matchCount: number;
   totalScore: number;
   totalPoints: number;
+  totalChipPoints: number; // チップをポイント換算したものの合計
   totalMoney: number;
   totalChips: number;
   moneyFromScore: number;
@@ -13,10 +14,18 @@ export interface PlayerStats {
   avgRank: number;
   avgScore: number;
   avgPoints: number; // 麻雀ポイントの平均
+  avgChipPoints: number; // チップポイントの平均
   maxScore: number;
   top2Rate: number; // 連対率
   rankCounts: { [rank: number]: number };
   yakumanCount: number;
+  recentResults: {
+    matchId: string;
+    date: string;
+    rank: number;
+    points: number;
+    score: number;
+  }[];
   headToHead: { [otherPlayerId: string]: { 
     name: string, 
     winCount: number, 
@@ -33,12 +42,22 @@ export interface PlayerStats {
 export function calculateAllPlayerStats(matches: any[], players: any[], targetYear?: string, startDate?: string, endDate?: string): { [playerId: string]: PlayerStats } {
   const stats: { [playerId: string]: PlayerStats } = {};
 
+  // 日付降順にソート（直近10戦を正確に取得するため）
+  const sortedMatches = [...matches].sort((a, b) => {
+    // 日付が同じならcreated_atでソート
+    if (a.date === b.date) {
+      return (b.created_at || '').localeCompare(a.created_at || '');
+    }
+    return b.date.localeCompare(a.date);
+  });
+
   // 初期化
   players.forEach(p => {
     stats[p.id] = {
       matchCount: 0,
       totalScore: 0,
       totalPoints: 0,
+      totalChipPoints: 0,
       totalMoney: 0,
       totalChips: 0,
       moneyFromScore: 0,
@@ -46,16 +65,18 @@ export function calculateAllPlayerStats(matches: any[], players: any[], targetYe
       avgRank: 0,
       avgScore: 0,
       avgPoints: 0,
+      avgChipPoints: 0,
       maxScore: -Infinity,
       top2Rate: 0,
       rankCounts: { 1: 0, 2: 0, 3: 0, 4: 0 },
       yakumanCount: 0,
+      recentResults: [],
       headToHead: {}
     };
   });
 
   // 対局ごとに集計
-  matches.forEach(match => {
+  sortedMatches.forEach(match => {
     // 年フィルター
     if (targetYear && !match.date.startsWith(targetYear)) return;
 
@@ -74,6 +95,14 @@ export function calculateAllPlayerStats(matches: any[], players: any[], targetYe
       s.totalPoints += p.totalPoints || 0;
       s.totalMoney += p.totalMoney || 0;
 
+      // チップ換算ポイントの集計
+      const chipPoints = p.chipPoints !== undefined 
+        ? p.chipPoints 
+        : (match.settings.chipEnabled && (match.settings.rateSettings || 0) > 0 
+          ? ((p.chips || 0) * (match.settings.chipRate || 0)) / match.settings.rateSettings 
+          : 0);
+      s.totalChipPoints += chipPoints;
+
       const chipMoney = (p.chips || 0) * (match.settings.chipRate || 0);
       s.totalChips += p.chips || 0;
       s.moneyFromChips += chipMoney;
@@ -82,6 +111,17 @@ export function calculateAllPlayerStats(matches: any[], players: any[], targetYe
       s.rankCounts[p.rank]++;
       s.yakumanCount += p.yakumanCount || 0;
       if (p.score > s.maxScore) s.maxScore = p.score;
+
+      // 直近10戦のデータを追加 (matchesが降順の場合、最初の方に追加される)
+      if (s.recentResults.length < 10) {
+        s.recentResults.push({
+          matchId: match.id,
+          date: match.date,
+          rank: p.rank,
+          points: (p.totalPoints || 0) + chipPoints, // ここもチップ込にするか分けるか？ とりあえず合計を表示
+          score: p.score || 0
+        });
+      }
 
       // 直接対決データの集計
       results.forEach((other: any) => {
@@ -121,6 +161,7 @@ export function calculateAllPlayerStats(matches: any[], players: any[], targetYe
       s.avgRank = (s.rankCounts[1] * 1 + s.rankCounts[2] * 2 + s.rankCounts[3] * 3 + s.rankCounts[4] * 4) / s.matchCount;
       s.avgScore = s.totalScore / s.matchCount;
       s.avgPoints = s.totalPoints / s.matchCount;
+      s.avgChipPoints = s.totalChipPoints / s.matchCount;
       s.top2Rate = ((s.rankCounts[1] + s.rankCounts[2]) / s.matchCount) * 100;
     } else {
       s.maxScore = 0;
