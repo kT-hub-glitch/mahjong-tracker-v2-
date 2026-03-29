@@ -673,6 +673,44 @@ export default function InputPage() {
             ))}
           </section>
 
+          {/* 中間補完ボタン */}
+          {(!isTotalValid || !isChipTotalValid) && (
+            <div className="flex flex-wrap gap-2 px-1">
+              {!isTotalValid && playerInputs.filter(p => p.score !== '').length === 3 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const idx = playerInputs.findIndex(p => p.score === '');
+                    if (idx !== -1) {
+                      const othersTotal = playerInputs.reduce((sum, p, i) => i === idx ? sum : sum + (Number(p.score) || 0) * 100, 0);
+                      const remaining = (targetTotal - othersTotal) / 100;
+                      handleScoreChange(idx, remaining.toString());
+                    }
+                  }}
+                  className="bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/50 text-emerald-400 text-xs font-bold px-4 py-2.5 rounded-2xl transition-all flex items-center gap-2 active:scale-95 animate-in fade-in slide-in-from-bottom-2"
+                >
+                  <Trophy size={14} /> 点数を補完する
+                </button>
+              )}
+              {settings.chipEnabled && !isChipTotalValid && playerInputs.filter(p => p.chips !== '').length === 3 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const idx = playerInputs.findIndex(p => p.chips === '');
+                    if (idx !== -1) {
+                      const othersTotal = playerInputs.reduce((sum, p, i) => i === idx ? sum : sum + (Number(p.chips) || 0), 0);
+                      const remaining = 0 - othersTotal;
+                      handleChipChange(idx, remaining.toString());
+                    }
+                  }}
+                  className="bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/50 text-emerald-400 text-xs font-bold px-4 py-2.5 rounded-2xl transition-all flex items-center gap-2 active:scale-95 animate-in fade-in slide-in-from-bottom-2"
+                >
+                  <AlertCircle size={14} /> チップを補完する
+                </button>
+              )}
+            </div>
+          )}
+
           {/* 対局メモ */}
           <section className="glass rounded-3xl p-5 space-y-3">
             <div className="flex items-center gap-2 text-slate-400 font-bold text-sm">
