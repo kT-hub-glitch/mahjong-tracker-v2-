@@ -405,44 +405,52 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
 
                                 return (
                                 <div key={p.playerId} className="grid grid-cols-12 items-center gap-x-1 py-1.5">
-                                  <div className="col-span-3 flex items-center gap-1.5 min-w-0">
-                                    <span className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-xs font-bold ${
-                                      p.rank === 1 ? 'bg-yellow-500/20 text-yellow-500' :
-                                      p.rank === 4 ? 'bg-slate-500/20 text-slate-500' : 'bg-white/5 text-slate-400'
-                                    }`}>
-                                      {p.rank}
-                                    </span>
-                                    <span className="text-white text-sm font-semibold truncate">{p.name}</span>
-                                  </div>
-
-                                  {/* 点数 (PTS) */}
-                                  <div className="col-span-3 text-right">
-                                    <span className="text-[10px] text-slate-500 block leading-none mb-0.5">SCORE (PTS)</span>
-                                    <div className="flex flex-col items-end">
-                                      <span className="text-white text-xs font-mono leading-none">{(p.score || 0).toLocaleString()}</span>
-                                      <span className={`text-xs font-mono font-bold ${p.totalPoints > 0 ? 'text-emerald-400' : p.totalPoints < 0 ? 'text-red-400' : 'text-slate-500'}`}>
-                                        ({p.totalPoints > 0 ? '+' : ''}{p.totalPoints.toFixed(1)})
+                                  {/* 順位と名前 */}
+                                  {match.settings.chipEnabled ? (
+                                    <div className="col-span-3 flex items-center gap-1.5 min-w-0">
+                                      <span className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-xs font-bold ${
+                                        p.rank === 1 ? 'bg-yellow-500/20 text-yellow-500' :
+                                        p.rank === 4 ? 'bg-slate-500/20 text-slate-500' : 'bg-white/5 text-slate-400'
+                                      }`}>
+                                        {p.rank}
                                       </span>
+                                      <span className="text-white text-sm font-semibold truncate">{p.name}</span>
                                     </div>
-                                  </div>
+                                  ) : (
+                                    <div className="col-span-4 flex items-center gap-1.5 min-w-0">
+                                      <span className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-xs font-bold ${
+                                        p.rank === 1 ? 'bg-yellow-500/20 text-yellow-500' :
+                                        p.rank === 4 ? 'bg-slate-500/20 text-slate-500' : 'bg-white/5 text-slate-400'
+                                      }`}>
+                                        {p.rank}
+                                      </span>
+                                      <span className="text-white text-sm font-semibold truncate">{p.name}</span>
+                                    </div>
+                                  )}
 
                                   {match.settings.chipEnabled ? (
                                     <>
-                                      <div className="col-span-2 text-right border-l border-white/5 pl-1">
+                                      {/* SCORE */}
+                                      <div className="col-span-2 text-right">
+                                        <span className="text-[10px] text-slate-500 block leading-none mb-0.5">SCORE</span>
+                                        <span className="text-white text-xs font-mono font-bold">{(p.score || 0).toLocaleString()}</span>
+                                      </div>
+                                      {/* PTS */}
+                                      <div className="col-span-2 text-right">
+                                        <span className="text-[10px] text-slate-500 block leading-none mb-0.5">PTS</span>
+                                        <span className={`text-xs font-mono font-bold ${totalCombinedPoints > 0 ? 'text-emerald-400' : totalCombinedPoints < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                          {totalCombinedPoints > 0 ? '+' : ''}{totalCombinedPoints.toFixed(1)}
+                                        </span>
+                                      </div>
+                                      {/* CHIP */}
+                                      <div className="col-span-2 text-right">
                                         <span className="text-[10px] text-slate-500 block leading-none mb-0.5">CHIP</span>
                                         <span className={`text-xs font-mono font-bold ${(p.chips || 0) > 0 ? 'text-emerald-400' : (p.chips || 0) < 0 ? 'text-red-400' : 'text-slate-500'}`}>
                                           {(p.chips || 0) > 0 ? '+' : ''}{p.chips || 0}
                                         </span>
                                       </div>
-                                      {/* チップ込スコア (総合ポイント) */}
-                                      <div className="col-span-2 text-right">
-                                        <span className="text-[10px] text-slate-500/80 block leading-none mb-0.5 text-emerald-500/70">TOTAL PTS</span>
-                                        <span className={`text-xs font-mono font-bold ${totalCombinedPoints > 0 ? 'text-emerald-400' : totalCombinedPoints < 0 ? 'text-red-400' : 'text-slate-500'}`}>
-                                          {totalCombinedPoints > 0 ? '+' : ''}{totalCombinedPoints.toFixed(1)}
-                                        </span>
-                                      </div>
-                                      {/* 金額 */}
-                                      <div className="col-span-2 text-right">
+                                      {/* MONEY */}
+                                      <div className="col-span-3 text-right">
                                         <span className="text-[10px] text-slate-500 block leading-none mb-0.5">MONEY</span>
                                         <span className={`text-xs font-mono font-bold ${p.totalMoney > 0 ? 'text-emerald-400' : p.totalMoney < 0 ? 'text-red-400' : 'text-slate-500'}`}>
                                           {p.totalMoney > 0 ? '+' : ''}{p.totalMoney.toLocaleString()}
@@ -451,10 +459,13 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
                                     </>
                                   ) : (
                                     <>
-                                      <div className="col-span-3 text-right">
+                                      {/* SCORE */}
+                                      <div className="col-span-4 text-right">
+                                        <span className="text-[10px] text-slate-500 block leading-none mb-0.5">SCORE</span>
+                                        <span className="text-white text-sm font-mono font-bold">{(p.score || 0).toLocaleString()}</span>
                                       </div>
-                                      {/* 金額 (チップなし時) */}
-                                      <div className="col-span-3 text-right">
+                                      {/* MONEY */}
+                                      <div className="col-span-4 text-right">
                                         <span className="text-[10px] text-slate-500 block leading-none mb-0.5">MONEY</span>
                                         <span className={`text-sm font-mono font-bold ${p.totalMoney > 0 ? 'text-emerald-400' : p.totalMoney < 0 ? 'text-red-400' : 'text-slate-500'}`}>
                                           {p.totalMoney > 0 ? '+' : ''}{p.totalMoney.toLocaleString()}
