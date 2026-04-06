@@ -146,38 +146,32 @@ export default function HistoryPage() {
                     <div className="flex items-center gap-2 text-emerald-400 font-bold text-[10px] uppercase tracking-widest">
                       <Calculator size={14} /> Daily Settlement
                     </div>
-                    <div className="text-right">
-                      <span className="text-[9px] text-slate-500 font-bold uppercase block tracking-tighter mb-1">Total Movement</span>
-                      <div className="text-lg font-mono font-bold text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.3)]">
-                        ¥{dailyTotals.reduce((sum, t) => sum + (t.money > 0 ? t.money : 0), 0).toLocaleString()}
-                      </div>
-                    </div>
                   </div>
                   <div className="space-y-3 relative z-10">
                     {dailyTotals.map(total => (
-                      <div key={total.name} className="grid grid-cols-12 items-center text-xs bg-white/5 p-2 px-3 rounded-xl border border-white/5 gap-2">
-                        <span className="col-span-4 text-slate-300 font-bold truncate">{total.name}</span>
-                        
+                      <div key={total.name} className="grid grid-cols-12 items-center bg-white/5 py-2.5 px-3 rounded-xl border border-white/5 gap-2">
+                        <span className="col-span-4 text-slate-200 text-sm font-bold truncate">{total.name}</span>
+
                         {/* チップ込みポイント (素点ポイント) */}
                         <div className={`${chipEnabledOnDate ? 'col-span-3' : 'col-span-4'} text-right`}>
-                          <span className={`font-mono font-bold ${total.points + total.chipPoints > 0 ? 'text-emerald-400' : total.points + total.chipPoints < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                          <span className={`text-sm font-mono font-bold ${total.points + total.chipPoints > 0 ? 'text-emerald-400' : total.points + total.chipPoints < 0 ? 'text-red-400' : 'text-slate-500'}`}>
                             {total.points + total.chipPoints > 0 ? '+' : ''}{(total.points + total.chipPoints).toFixed(1)}
-                            <span className="text-[9px] ml-1 opacity-60 font-medium">({total.points > 0 ? '+' : ''}{total.points.toFixed(1)})</span>
+                            <span className="text-[10px] ml-1 opacity-60 font-medium">({total.points > 0 ? '+' : ''}{total.points.toFixed(1)})</span>
                           </span>
                         </div>
 
                         {/* チップ合計 (設定有効時のみ) */}
                         {chipEnabledOnDate && (
                           <div className="col-span-2 text-right">
-                            <span className={`font-mono ${total.chips > 0 ? 'text-emerald-400' : total.chips < 0 ? 'text-red-400' : 'text-slate-500'}`}>
-                              {total.chips > 0 ? '+' : ''}{total.chips}<span className="text-[10px] ml-0.5 opacity-70">枚</span>
+                            <span className={`text-sm font-mono ${total.chips > 0 ? 'text-emerald-400' : total.chips < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                              {total.chips > 0 ? '+' : ''}{total.chips}<span className="text-xs ml-0.5 opacity-70">枚</span>
                             </span>
                           </div>
                         )}
 
                         {/* 金額合計 */}
                         <div className={`${chipEnabledOnDate ? 'col-span-3' : 'col-span-4'} text-right`}>
-                          <span className={`font-mono font-bold ${total.money > 0 ? 'text-emerald-400' : total.money < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                          <span className={`text-sm font-mono font-bold ${total.money > 0 ? 'text-emerald-400' : total.money < 0 ? 'text-red-400' : 'text-slate-500'}`}>
                             {total.money > 0 ? '+' : ''}{total.money.toLocaleString()}
                           </span>
                         </div>
@@ -223,49 +217,49 @@ export default function HistoryPage() {
                           const totalCombinedPoints = (p.totalPoints || 0) + cPoints;
 
                           return (
-                            <div key={p.playerId} className="grid grid-cols-12 items-center gap-1">
+                            <div key={p.playerId} className="grid grid-cols-12 items-center gap-1 py-0.5">
                               {/* 順位と名前 */}
-                              <div className="col-span-3 flex items-center gap-1.5 min-w-0">
-                                <span className={`w-4 h-4 shrink-0 flex items-center justify-center rounded-full text-[9px] font-bold ${
-                                  p.rank === 1 ? 'bg-yellow-500/20 text-yellow-500' : 
+                              <div className="col-span-3 flex items-center gap-2 min-w-0">
+                                <span className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-xs font-bold ${
+                                  p.rank === 1 ? 'bg-yellow-500/20 text-yellow-500' :
                                   p.rank === 4 ? 'bg-slate-500/20 text-slate-500' : 'bg-white/5 text-slate-400'
                                 }`}>
                                   {p.rank}
                                 </span>
-                                <span className="text-white text-[11px] font-medium truncate">{p.name}</span>
+                                <span className="text-white text-xs font-semibold truncate">{p.name}</span>
                               </div>
-    
+
                               {/* 点数 (PTS) */}
                               <div className="col-span-3 text-right">
-                                <span className="text-[8px] text-slate-500 block leading-none mb-0.5">SCORE (PTS)</span>
+                                <span className="text-[10px] text-slate-500 block leading-none mb-0.5">SCORE (PTS)</span>
                                 <div className="flex flex-col items-end">
-                                  <span className="text-white text-[10px] font-mono leading-none">{(p.score || 0).toLocaleString()}</span>
-                                  <span className={`text-[9px] font-mono font-bold ${p.totalPoints > 0 ? 'text-emerald-400' : p.totalPoints < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                  <span className="text-white text-xs font-mono leading-none">{(p.score || 0).toLocaleString()}</span>
+                                  <span className={`text-[11px] font-mono font-bold ${p.totalPoints > 0 ? 'text-emerald-400' : p.totalPoints < 0 ? 'text-red-400' : 'text-slate-500'}`}>
                                     ({p.totalPoints > 0 ? '+' : ''}{p.totalPoints.toFixed(1)})
                                   </span>
                                 </div>
                               </div>
-    
+
                               {/* チップ (条件付き) */}
                               {match.settings.chipEnabled ? (
                                 <>
                                   <div className="col-span-2 text-right border-l border-white/5 pl-1">
-                                    <span className="text-[8px] text-slate-500 block leading-none mb-0.5">CHIP</span>
-                                    <span className={`text-[10px] font-mono font-bold ${(p.chips || 0) > 0 ? 'text-emerald-400' : (p.chips || 0) < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                    <span className="text-[10px] text-slate-500 block leading-none mb-0.5">CHIP</span>
+                                    <span className={`text-xs font-mono font-bold ${(p.chips || 0) > 0 ? 'text-emerald-400' : (p.chips || 0) < 0 ? 'text-red-400' : 'text-slate-500'}`}>
                                       {(p.chips || 0) > 0 ? '+' : ''}{p.chips || 0}
                                     </span>
                                   </div>
                                   {/* チップ込スコア (総合ポイント) */}
                                   <div className="col-span-2 text-right">
-                                    <span className="text-[8px] text-slate-500 block leading-none mb-0.5 text-emerald-500/70">TOTAL PTS</span>
-                                    <span className={`text-[10px] font-mono font-bold ${totalCombinedPoints > 0 ? 'text-emerald-400' : totalCombinedPoints < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                    <span className="text-[10px] text-slate-500/80 block leading-none mb-0.5 text-emerald-500/70">TOTAL PTS</span>
+                                    <span className={`text-xs font-mono font-bold ${totalCombinedPoints > 0 ? 'text-emerald-400' : totalCombinedPoints < 0 ? 'text-red-400' : 'text-slate-500'}`}>
                                       {totalCombinedPoints > 0 ? '+' : ''}{totalCombinedPoints.toFixed(1)}
                                     </span>
                                   </div>
                                   {/* 金額 */}
                                   <div className="col-span-2 text-right">
-                                    <span className="text-[8px] text-slate-500 block leading-none mb-0.5">MONEY</span>
-                                    <span className={`text-[10px] font-mono font-bold ${p.totalMoney > 0 ? 'text-emerald-400' : p.totalMoney < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                    <span className="text-[10px] text-slate-500 block leading-none mb-0.5">MONEY</span>
+                                    <span className={`text-xs font-mono font-bold ${p.totalMoney > 0 ? 'text-emerald-400' : p.totalMoney < 0 ? 'text-red-400' : 'text-slate-500'}`}>
                                       {p.totalMoney > 0 ? '+' : ''}{p.totalMoney.toLocaleString()}
                                     </span>
                                   </div>
@@ -277,8 +271,8 @@ export default function HistoryPage() {
                                   </div>
                                   {/* 金額 (チップなし時) */}
                                   <div className="col-span-3 text-right">
-                                    <span className="text-[8px] text-slate-500 block leading-none mb-0.5">MONEY</span>
-                                    <span className={`text-[10px] font-mono font-bold ${p.totalMoney > 0 ? 'text-emerald-400' : p.totalMoney < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                    <span className="text-[10px] text-slate-500 block leading-none mb-0.5">MONEY</span>
+                                    <span className={`text-xs font-mono font-bold ${p.totalMoney > 0 ? 'text-emerald-400' : p.totalMoney < 0 ? 'text-red-400' : 'text-slate-500'}`}>
                                       {p.totalMoney > 0 ? '+' : ''}{p.totalMoney.toLocaleString()}
                                     </span>
                                   </div>
