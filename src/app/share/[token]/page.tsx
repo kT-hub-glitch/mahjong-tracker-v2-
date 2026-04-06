@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, use } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Users, History, TrendingUp, Filter, ChevronRight, Lock, Eye, EyeOff } from 'lucide-react';
+import { Users, History, TrendingUp, Filter, ChevronRight, Lock, Eye, EyeOff, Calculator, Calendar } from 'lucide-react';
 import { calculateAllPlayerStats, PlayerStats } from '@/lib/stats-logic';
 import PlayerStatsModal from '@/components/stats/PlayerStatsModal';
 
@@ -70,6 +70,39 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
     });
     return groups;
   }, [filteredMatches]);
+
+  // 日次合計の計算
+  const calculateDailyTotals = (dateMatches: any[]) => {
+    const totals: { [key: string]: { name: string, money: number, chips: number, points: number, chipPoints: number } } = {};
+    let chipEnabledOnDate = false;
+
+    dateMatches.forEach(match => {
+      if (match.settings.chipEnabled) chipEnabledOnDate = true;
+      const chipRate = Number(match.settings.chipRate) || 0;
+      const rateSettings = Number(match.settings.rateSettings) || 0;
+
+      match.players_results.forEach((p: any) => {
+        if (!totals[p.playerId]) {
+          totals[p.playerId] = { name: p.name, money: 0, chips: 0, points: 0, chipPoints: 0 };
+        }
+        
+        const cPoints = p.chipPoints !== undefined 
+          ? p.chipPoints 
+          : (match.settings.chipEnabled && rateSettings > 0 
+            ? ((p.chips || 0) * chipRate) / rateSettings 
+            : 0);
+
+        totals[p.playerId].money += (p.totalMoney || 0);
+        totals[p.playerId].chips += (p.chips || 0);
+        totals[p.playerId].points += (p.totalPoints || 0);
+        totals[p.playerId].chipPoints += cPoints;
+      });
+    });
+    return {
+      results: Object.values(totals).sort((a, b) => b.money - a.money),
+      chipEnabledOnDate
+    };
+  };
 
   useEffect(() => {
     if (players.length > 0) {
@@ -298,17 +331,70 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
                   該当する対局記録がありません
                 </div>
               ) : (
-                Object.keys(groupedMatches).sort((a,b) => b.localeCompare(a)).map(date => (
+                Object.keys(groupedMatches).sort((a,b) => b.localeCompare(a)).map(date => {
+                  const dateMatches = groupedMatches[date];
+                  const { results: dailyTotals, chipEnabledOnDate } = calculateDailyTotals(dateMatches);
+                  
+                  return (
                   <div key={date} className="space-y-4">
                     <div className="flex items-center gap-2 text-slate-400 font-bold text-sm px-1">
-                      <History size={14} /> {date}
+                      <Calendar size={14} /> {date}
+                    </div>
+
+                    {/* 日次精算サマリー */}
+                    <div className="glass rounded-3xl p-5 border-l-4 border-l-emerald-500 shadow-xl relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <Calculator size={60} className="text-emerald-400" />
+                      </div>
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-2 text-emerald-400 font-bold text-[10px] uppercase tracking-widest">
+                          <Calculator size={14} /> Daily Settlement
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[9px] text-slate-500 font-bold uppercase block tracking-tighter mb-1">Total Movement</span>
+                          <div className="text-lg font-mono font-bold text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.3)]">
+                            ¥{dailyTotals.reduce((sum, t) => sum + (t.money > 0 ? t.money : 0), 0).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-3 relative z-10">
+                        {dailyTotals.map(total => (
+                          <div key={total.name} className="grid grid-cols-12 items-center text-xs bg-white/5 p-2 px-3 rounded-xl border border-white/5 gap-2">
+                            <span className="col-span-4 text-slate-300 font-bold truncate">{total.name}</span>
+                            
+                            {/* チップ込みポイント (素点ポイント) */}
+                            <div className={`${chipEnabledOnDate ? 'col-span-3' : 'col-span-4'} text-right`}>
+                              <span className={`font-mono font-bold ${total.points + total.chipPoints > 0 ? 'text-emerald-400' : total.points + total.chipPoints < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                {total.points + total.chipPoints > 0 ? '+' : ''}{(total.points + total.chipPoints).toFixed(1)}
+                                <span className="text-[9px] ml-1 opacity-60 font-medium">({total.points > 0 ? '+' : ''}{total.points.toFixed(1)})</span>
+                              </span>
+                            </div>
+
+                            {/* チップ合計 (設定有効時のみ) */}
+                            {chipEnabledOnDate && (
+                              <div className="col-span-2 text-right">
+                                <span className={`font-mono ${total.chips > 0 ? 'text-emerald-400' : total.chips < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                  {total.chips > 0 ? '+' : ''}{total.chips}<span className="text-[10px] ml-0.5 opacity-70">枚</span>
+                                </span>
+                              </div>
+                            )}
+
+                            {/* 金額合計 */}
+                            <div className={`${chipEnabledOnDate ? 'col-span-3' : 'col-span-4'} text-right`}>
+                              <span className={`font-mono font-bold ${total.money > 0 ? 'text-emerald-400' : total.money < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                {total.money > 0 ? '+' : ''}{total.money.toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                     
                     <div className="space-y-4">
-                      {groupedMatches[date].map((match, idx) => (
-                        <div key={match.id} className="glass rounded-3xl p-5 space-y-4 border-white/20">
+                      {dateMatches.map((match, idx) => (
+                        <div key={match.id} className="glass rounded-3xl p-5 space-y-4 border-white/20 group transition-all hover:bg-white/[0.07]">
                           <div className="flex items-center gap-3 pb-2 border-b border-white/5">
-                            <span className="text-[10px] font-bold text-slate-500 bg-white/5 px-2 py-1 rounded">MATCH #{groupedMatches[date].length - idx}</span>
+                            <span className="text-[10px] font-bold text-slate-500 bg-white/5 px-2 py-1 rounded">MATCH #{dateMatches.length - idx}</span>
                             <span className="text-[10px] text-slate-500">{new Date(match.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
 
@@ -325,7 +411,7 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
 
                                 return (
                                 <div key={p.playerId} className="grid grid-cols-12 items-center gap-1">
-                                  <div className="col-span-4 flex items-center gap-1.5 min-w-0">
+                                  <div className="col-span-3 flex items-center gap-1.5 min-w-0">
                                     <span className={`w-4 h-4 shrink-0 flex items-center justify-center rounded-full text-[9px] font-bold ${
                                       p.rank === 1 ? 'bg-yellow-500/20 text-yellow-500' : 
                                       p.rank === 4 ? 'bg-slate-500/20 text-slate-500' : 'bg-white/5 text-slate-400'
@@ -355,29 +441,48 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
                                         </span>
                                       </div>
                                       {/* チップ込スコア (総合ポイント) */}
-                                      <div className="col-span-3 text-right">
+                                      <div className="col-span-2 text-right">
                                         <span className="text-[8px] text-slate-500 block leading-none mb-0.5 text-emerald-500/70">TOTAL PTS</span>
                                         <span className={`text-[10px] font-mono font-bold ${totalCombinedPoints > 0 ? 'text-emerald-400' : totalCombinedPoints < 0 ? 'text-red-400' : 'text-slate-500'}`}>
                                           {totalCombinedPoints > 0 ? '+' : ''}{totalCombinedPoints.toFixed(1)}
                                         </span>
                                       </div>
+                                      {/* 金額 */}
+                                      <div className="col-span-2 text-right">
+                                        <span className="text-[8px] text-slate-500 block leading-none mb-0.5">MONEY</span>
+                                        <span className={`text-[10px] font-mono font-bold ${p.totalMoney > 0 ? 'text-emerald-400' : p.totalMoney < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                          {p.totalMoney > 0 ? '+' : ''}{p.totalMoney.toLocaleString()}
+                                        </span>
+                                      </div>
                                     </>
                                   ) : (
-                                    <div className="col-span-5 text-right">
-                                      <span className="text-[8px] text-slate-500 block leading-none mb-0.5">PTS</span>
-                                      <span className={`text-[10px] font-mono font-bold ${p.totalPoints > 0 ? 'text-emerald-400' : p.totalPoints < 0 ? 'text-red-400' : 'text-slate-500'}`}>
-                                        {p.totalPoints > 0 ? '+' : ''}{p.totalPoints.toFixed(1)}
-                                      </span>
-                                    </div>
+                                    <>
+                                      <div className="col-span-3 text-right">
+                                      </div>
+                                      {/* 金額 (チップなし時) */}
+                                      <div className="col-span-3 text-right">
+                                        <span className="text-[8px] text-slate-500 block leading-none mb-0.5">MONEY</span>
+                                        <span className={`text-[10px] font-mono font-bold ${p.totalMoney > 0 ? 'text-emerald-400' : p.totalMoney < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                          {p.totalMoney > 0 ? '+' : ''}{p.totalMoney.toLocaleString()}
+                                        </span>
+                                      </div>
+                                    </>
                                   )}
                                 </div>
                               )})}
                           </div>
+                          
+                          {match.memo && (
+                            <div className="text-[10px] text-slate-500 bg-white/5 p-2 rounded-xl italic mt-3">
+                              {match.memo}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
                   </div>
-                ))
+                );
+              })
               )}
             </section>
           )}
