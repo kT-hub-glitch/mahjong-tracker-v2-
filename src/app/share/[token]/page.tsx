@@ -354,19 +354,20 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
                       <div className="space-y-3 relative z-10">
                         {dailyTotals.map(total => (
                           <div key={total.name} className="grid grid-cols-12 items-center bg-white/5 py-2.5 px-3 rounded-xl border border-white/5 gap-2">
-                            <span className="col-span-4 text-slate-200 text-sm font-bold truncate">{total.name}</span>
+                            <span className={`${chipEnabledOnDate ? 'col-span-3' : 'col-span-4'} text-slate-200 text-sm font-bold truncate`}>{total.name}</span>
 
-                            {/* チップ込みポイント (素点ポイント) */}
+                            {/* PTS (素点ポイント) */}
                             <div className={`${chipEnabledOnDate ? 'col-span-3' : 'col-span-4'} text-right`}>
-                              <span className={`text-sm font-mono font-bold ${total.points + total.chipPoints > 0 ? 'text-emerald-400' : total.points + total.chipPoints < 0 ? 'text-red-400' : 'text-slate-500'}`}>
-                                {total.points + total.chipPoints > 0 ? '+' : ''}{(total.points + total.chipPoints).toFixed(1)}
-                                <span className="text-[10px] ml-1 opacity-60 font-medium">({total.points > 0 ? '+' : ''}{total.points.toFixed(1)})</span>
+                              <span className="text-[10px] text-slate-500 block leading-none mb-0.5">PTS</span>
+                              <span className={`text-sm font-mono font-bold ${total.points > 0 ? 'text-emerald-400' : total.points < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                {total.points > 0 ? '+' : ''}{total.points.toFixed(1)}
                               </span>
                             </div>
 
                             {/* チップ合計 (設定有効時のみ) */}
                             {chipEnabledOnDate && (
-                              <div className="col-span-2 text-right">
+                              <div className="col-span-3 text-right">
+                                <span className="text-[10px] text-slate-500 block leading-none mb-0.5">CHIP</span>
                                 <span className={`text-sm font-mono ${total.chips > 0 ? 'text-emerald-400' : total.chips < 0 ? 'text-red-400' : 'text-slate-500'}`}>
                                   {total.chips > 0 ? '+' : ''}{total.chips}<span className="text-xs ml-0.5 opacity-70">枚</span>
                                 </span>
@@ -375,6 +376,7 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
 
                             {/* 金額合計 */}
                             <div className={`${chipEnabledOnDate ? 'col-span-3' : 'col-span-4'} text-right`}>
+                              <span className="text-[10px] text-slate-500 block leading-none mb-0.5">MONEY</span>
                               <span className={`text-sm font-mono font-bold ${total.money > 0 ? 'text-emerald-400' : total.money < 0 ? 'text-red-400' : 'text-slate-500'}`}>
                                 {total.money > 0 ? '+' : ''}{total.money.toLocaleString()}
                               </span>
@@ -417,7 +419,7 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
                                       <span className="text-white text-sm font-semibold truncate">{p.name}</span>
                                     </div>
                                   ) : (
-                                    <div className="col-span-4 flex items-center gap-1.5 min-w-0">
+                                    <div className="col-span-3 flex items-center gap-1.5 min-w-0">
                                       <span className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-xs font-bold ${
                                         p.rank === 1 ? 'bg-yellow-500/20 text-yellow-500' :
                                         p.rank === 4 ? 'bg-slate-500/20 text-slate-500' : 'bg-white/5 text-slate-400'
@@ -460,12 +462,19 @@ export default function SharedDashboard({ params }: { params: Promise<{ token: s
                                   ) : (
                                     <>
                                       {/* SCORE */}
-                                      <div className="col-span-4 text-right">
+                                      <div className="col-span-3 text-right">
                                         <span className="text-[10px] text-slate-500 block leading-none mb-0.5">SCORE</span>
                                         <span className="text-white text-sm font-mono font-bold">{(p.score || 0).toLocaleString()}</span>
                                       </div>
+                                      {/* PTS */}
+                                      <div className="col-span-3 text-right">
+                                        <span className="text-[10px] text-slate-500 block leading-none mb-0.5">PTS</span>
+                                        <span className={`text-sm font-mono font-bold ${(p.totalPoints || 0) > 0 ? 'text-emerald-400' : (p.totalPoints || 0) < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                          {(p.totalPoints || 0) > 0 ? '+' : ''}{(p.totalPoints || 0).toFixed(1)}
+                                        </span>
+                                      </div>
                                       {/* MONEY */}
-                                      <div className="col-span-4 text-right">
+                                      <div className="col-span-3 text-right">
                                         <span className="text-[10px] text-slate-500 block leading-none mb-0.5">MONEY</span>
                                         <span className={`text-sm font-mono font-bold ${p.totalMoney > 0 ? 'text-emerald-400' : p.totalMoney < 0 ? 'text-red-400' : 'text-slate-500'}`}>
                                           {p.totalMoney > 0 ? '+' : ''}{p.totalMoney.toLocaleString()}
